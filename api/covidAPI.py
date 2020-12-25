@@ -115,8 +115,6 @@ class CovidAPI(APIHandler.APIHandler):
             stats = await self.getAPI('https://corona-api.com/timeline')
             return stats['data']
 
-
-    #TODO: add error handling for if the output is a NoneType
     async def queryDate(self, country, date):
         """Returns the statistics given a certain date
 
@@ -140,8 +138,44 @@ class CovidAPI(APIHandler.APIHandler):
             if str(targetDate) in day['date']:
                 return day
 
+    async def getDateGraph(self, country, date, graphType = 'bar'):
+        """Generates a graph that displays the statistics of a certain date, given a country
+
+        Parameters
+        ----------
+        country : str
+            name of the country, if 'global' is inputted instead of a country name it will grab the global timeline instead
+
+        date : str
+            the date to be queried (ex. August 29th 2020)
+
+        graphType : str
+            type of graph, can choose from a bar graph (default) and pie chart
+        """
+        data = await self.queryDate(country, date) #grabs data for that date
+        stats = [data['deaths'], data['confirmed'], data['recovered'], data['new_confirmed'], data['new_recovered'], data['new_deaths'], data['active']] #puts the statistics in an array
+
+        # handles graphType
+        if graphType.lower() == 'bar':
+            labels = ['deaths', 'confirmed', 'recovered', 'new confirmed', 'new recovered', 'new deaths', 'active'] # sets the labels
+            plt.bar(labels, stats) # creates bar graph
+            plt.xticks(rotation=15) # gives the labels in the x-axis a 15 degree rotation to avoid overlapping
+            plt.tick_params(axis='x', which='major', labelsize=7) # adjusts label size
+        elif graphType.lower() == 'pie':
+            labels = [f'deaths - {stats[0]}', f'confirmed - {stats[1]}', f'recovered - {stats[2]}',
+                  f'new confirmed - {stats[3]}', f'new recovered - {stats[4]}', f'new deaths - {stats[5]}',
+                  f'active - {stats[6]}'] # formats the labels for the legend
+            pie = plt.pie(stats, startangle=90) # creates a pie chart
+            plt.legend(pie[0], labels, bbox_to_anchor=(-0.25,0.5), loc='center left') # formats the legend
+            plt.axis('equal') # equal aspect ratio ensures that pie is drawn as a circle.
+
+        plt.savefig('dateGraph', bbox_inches='tight') # saves graph as a file
+        plt.close() # closes the graph
+
+
+
     async def getTimelineGraph(self, country, statistic, graphType = 'line'):
-        """Generates a graph, displaying the timeline of a certain statistic overtime given a country and graph type
+        """Generates a graph that displays the timeline of a certain statistic overtime given a country and graph type
 
         Parameters
         ----------
@@ -188,13 +222,13 @@ class CovidAPI(APIHandler.APIHandler):
         plt.ylabel('Cases') # set label for y-axis
         fig.autofmt_xdate() # interprets the x-axis as dates and neatly formats it to avoid any messy overlapping
 
-        plt.savefig('graph.png') #use os.remove('graph.png') in bot function
-        plt.close() #closes the graph
+        plt.savefig('timelineGraph.png') # saves graph as file NOTE: use os.remove('timelineGraph.png') in bot function
+        plt.close() # closes the graph
 
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(CovidAPI().getTimelineGraph('Canada', 'deaths'))
+test = loop.run_until_complete(CovidAPI().getDateGraph('global', 'June 25 2020'))
 print(test)
 
 
