@@ -172,8 +172,6 @@ class CovidAPI(APIHandler.APIHandler):
         plt.savefig('dateGraph', bbox_inches='tight') # saves graph as a file
         plt.close() # closes the graph
 
-
-
     async def getTimelineGraph(self, country, statistic, graphType = 'line'):
         """Generates a graph that displays the timeline of a certain statistic overtime given a country and graph type
 
