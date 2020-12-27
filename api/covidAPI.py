@@ -3,6 +3,7 @@ import matplotlib
 import string
 import matplotlib.dates as mdates
 from api import APIHandler
+from utils.asyncOperations import *
 from datetime import datetime
 from matplotlib import pyplot as plt
 
@@ -56,7 +57,7 @@ class CovidAPI(APIHandler.APIHandler):
         """
         api = await self.getAPI('https://corona-api.com/countries')
         data = api['data']
-        countries = [{'name':data[i]['name'],'code':data[i]['code']} async for i in self.aiter(range(len(data)))]
+        countries = [{'name':data[i]['name'],'code':data[i]['code']} async for i in aiter(range(len(data)))]
         return countries
 
     async def getCountryCode(self, country):
@@ -74,7 +75,7 @@ class CovidAPI(APIHandler.APIHandler):
         """
 
         countryList = await self.getCountries()
-        async for c in self.aiter(countryList):
+        async for c in aiter(countryList):
             if c['name'] == country:
                 return c['code']
 
@@ -134,7 +135,7 @@ class CovidAPI(APIHandler.APIHandler):
         targetDate = datetime.strptime(f'{date}', '%B %d %Y').date()
         timeline = await self.getCountryTimeline(country)
 
-        async for day in self.aiter(timeline):
+        async for day in aiter(timeline):
             if str(targetDate) in day['date']:
                 return day
 
@@ -172,6 +173,8 @@ class CovidAPI(APIHandler.APIHandler):
         plt.savefig('dateGraph', bbox_inches='tight') # saves graph as a file
         plt.close() # closes the graph
 
+        return f'new {graphType} graph created (as dateGraph.png)'
+
     async def getTimelineGraph(self, country, statistic, graphType = 'line'):
         """Generates a graph that displays the timeline of a certain statistic overtime given a country and graph type
 
@@ -187,8 +190,8 @@ class CovidAPI(APIHandler.APIHandler):
             type of graph, can choose from a line (default value), bar, and scatter plot
         """
         countryTimeline = await self.getCountryTimeline(country) # grabs timeline
-        dates = [countryTimeline[i]['date'] async for i in self.aiter(range(len(countryTimeline)))] # grabs dates and puts it in an array
-        stat = [countryTimeline[i][f'{statistic}'] async for i in self.aiter(range(len(countryTimeline)))] # grabs the statistics and puts it in an array
+        dates = [countryTimeline[i]['date'] async for i in aiter(range(len(countryTimeline)))] # grabs dates and puts it in an array
+        stat = [countryTimeline[i][f'{statistic}'] async for i in aiter(range(len(countryTimeline)))] # grabs the statistics and puts it in an array
 
         dateTimes = mdates.num2date(mdates.datestr2num(dates)) # convert date strings to datetime objects
         fig, ax = plt.subplots() # create two subplots
@@ -223,11 +226,15 @@ class CovidAPI(APIHandler.APIHandler):
         plt.savefig('timelineGraph.png') # saves graph as file NOTE: use os.remove('timelineGraph.png') in bot function
         plt.close() # closes the graph
 
+        return f'new {graphType} graph created (as timelineGraph.png)'
+
+
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(CovidAPI().getDateGraph('global', 'June 25 2020'))
+test = loop.run_until_complete(CovidAPI().getDateGraph('USA', 'August 29 2020', 'pie'))
 print(test)
+
 
 
 

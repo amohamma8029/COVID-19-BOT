@@ -31,30 +31,6 @@ class APIHandler:
     def __init__(self):
         pass
 
-    # TODO: implement error handling
-    async def aiter(self, iterable):
-        """Asynchronously iterates through an object
-
-        Due to how most responses will use store dictionaries in a list,
-        this function will help to iterate through them while remaining
-        asynchronous.
-
-        Parameters
-        ----------
-        iterable : str, list, etc.
-            the object the iterator will iterate through
-
-        Returns
-        -------
-        ...
-
-        Raises
-        ------
-        ...
-        """
-        for item in iterable:
-            yield item
-
     # TODO: implement error handling.
     @cached(ttl=3600)
     async def getAPI(self, baseURL, payload = {}):
