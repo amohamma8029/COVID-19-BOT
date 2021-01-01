@@ -57,7 +57,7 @@ class APIHandler:
                     return data
 
 '''
-#TESTING ASYNC FUNCTIONS EXAMPLE:
+#TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
 test = loop.run_until_complete(APIhandler().getAPI('https://corona-api.com/countries'))

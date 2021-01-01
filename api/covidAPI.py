@@ -78,6 +78,8 @@ class CovidAPI(APIHandler.APIHandler):
         async for c in aiter(countryList):
             if c['name'] == country:
                 return c['code']
+        else:
+            return False
 
     async def getCountryStats(self, country):
         """Returns the specific statistics of a country
@@ -138,6 +140,8 @@ class CovidAPI(APIHandler.APIHandler):
         async for day in aiter(timeline):
             if str(targetDate) in day['date']:
                 return day
+        else:
+            return False
 
     async def getDateGraph(self, country, date, graphType = 'bar'):
         """Generates a graph that displays the statistics of a certain date, given a country
@@ -228,13 +232,13 @@ class CovidAPI(APIHandler.APIHandler):
 
         return f'new {graphType} graph created (as timelineGraph.png)'
 
-
+'''
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(CovidAPI().getDateGraph('USA', 'August 29 2020', 'pie'))
+test = loop.run_until_complete(CovidAPI().queryDate('Canada', 'June 12 2019'))
 print(test)
-
+'''
 
 
 
