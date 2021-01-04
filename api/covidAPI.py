@@ -7,9 +7,9 @@ from utils.asyncOperations import *
 from datetime import datetime
 from matplotlib import pyplot as plt
 
-#TODO: Add examples in parameters for methods
-#TODO: Add database functions to this
-#TODO: Add more explnatation to the code as single comments (ex. #this line does this)
+# TODO: Add examples in parameters for methods
+# TODO: Add database functions to this
+# TODO: Add more explnatation to the code as single comments (ex. #this line does this)
 
 class CovidAPI(APIHandler.APIHandler):
     """
