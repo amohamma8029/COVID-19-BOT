@@ -41,7 +41,7 @@ class NewsAPI(APIHandler.APIHandler):
         countries = await self.database.find('NEWSAPI', 'miscellaneous', {'_id':'Countries'})
         return countries[0]['CountryList']
 
-    async def queryCategories(self, categoryName):
+    async def queryCategory(self, categoryName):
         categoryList = await self.getCategories()
 
         if categoryName in categoryList:
@@ -74,49 +74,53 @@ class NewsAPI(APIHandler.APIHandler):
             return False
 
     async def getSources(self, category='', language='', country='', name=''):
-        filter = {'category':category, 'language':language, 'country':country, 'name':name}
+        search = {'category':category, 'language':language, 'country':country, 'name':name}
+        filter = {key: value async for (key, value) in aiter(search.items()) if value}  # removes keys that contain empty string as value
 
-        if not category:
-            del filter['category']
-
-        if not language:
-            del filter['language']
-        else:
+        if language:
             languageCode = await self.getLanguageCode(language)
             filter['language'] = languageCode
 
-        if not country:
-            del filter['country']
-        else:
+        if country:
             countryCode = await self.getCountryCode(country)
             filter['country'] = countryCode
-
-        if not name:
-            del filter['name']
 
         sources = await self.database.find('NEWSAPI', 'sources', filter)
         return sources
 
-    async def getTopHeadlines(self, country='', category='', sources='', query=''):
-        filter = {'country':country, 'category':category, 'sources':sources, 'q':query}
+    async def querySource(self, sourceName):
+        sourcesList = await self.getSources()
 
-        if not country:
-            del filter['country']
+        async for source in aiter(sourcesList):
+            if source['name'] == sourceName:
+                return True
         else:
+            return False
+
+    async def getTopHeadlines(self, country='', category='', sources='', query=''):
+        search = {'country':country, 'category':category, 'sources':sources, 'q':query}
+        filter = {key: value async for (key, value) in aiter(search.items()) if value} # removes keys that contain empty string as value
+
+        if country:
             countryCode = await self.getCountryCode(country)
             filter['country'] = countryCode
 
-        if not category:
-            del filter['category']
+        if category:
+            checkCategories = await self.queryCategory(category)
+            if not checkCategories:
+                raise ValueError('This is not a valid category')
 
-        if not sources:
-            del filter['sources']
+        if sources:
+            async for source in aiter(sources.split(',')):
+                sourceCheck = await self.querySource(source)
+                if not sourceCheck:
+                    raise ValueError(f'Invalid source(s) provided: {source}')
 
-        if not query:
-            del filter['q']
+            if country or category:
+                raise ValueError('You cannot specify a country or category if you specify a source')
 
         if not filter:
-            raise TypeError('you need at least one parameter!')
+            raise TypeError('you need at least one parameter! (country, category, sources, query)')
 
         # check if the filter/query is already in the database
         # if so, check if the date is outdated by a day or so
@@ -126,9 +130,13 @@ class NewsAPI(APIHandler.APIHandler):
         return headlines
 
 
-    async def getEverything(self, query, titleSearch, sources, domains, exludeDomains, fromDate, toDate, language, sortBy):
-        filter = {'q':query, 'qInTitle':titleSearch, 'sources':sources, 'domains':domains, 'excludeDomains':exludeDomains, 'from':fromDate, 'to':toDate, 'language':language, 'sortBy':sortBy}
+    async def getEverything(self, query='', titleSearch='', sources='', domains='', exludeDomains='', fromDate='', toDate='', language='', sortBy=''):
+        search = {'q':query, 'qInTitle':titleSearch, 'sources':sources, 'domains':domains, 'excludeDomains':exludeDomains, 'from':fromDate, 'to':toDate, 'language':language, 'sortBy':sortBy}
+        filter = {key: value async for (key, value) in aiter(search.items()) if value} # for every key value pair in the filter, add it to the dictionary if the value is not an empty string
 
+        if language:
+            languageCode = await self.getLanguageCode(language)
+            filter['language'] = language
 
 #TESTING ASYNC FUNCTIONS:
 
