@@ -33,7 +33,7 @@ class APIHandler:
 
     # TODO: implement error handling.
     @cached(ttl=3600)
-    async def getAPI(self, baseURL, payload = {}):
+    async def getAPI(self, baseURL, payload = {}, headers = {}):
         """Returns a cached json response of the link (cached for 1hr)
 
         Parameters
@@ -51,7 +51,7 @@ class APIHandler:
         """
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(baseURL, params = payload) as r:
+            async with session.get(baseURL, params = payload, headers = headers) as r:
                 if r.status == 200:
                     data = await r.json()
                     return data

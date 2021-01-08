@@ -2,10 +2,11 @@ import asyncio
 from api import APIHandler
 from database.DBHandler import DatabaseHandler
 from utils.asyncOperations import *
+from datetime import datetime
 
-# TODO: add sortBy to database
 # TODO: add documentation
-# TODO: add error handling
+
+# NOTE: APIKEY HAS BEEN ADDED TO HEADER PARAMETER TO AVOID THINGS SUCH AS REQUEST SNIFFING
 
 class NewsAPI(APIHandler.APIHandler):
     def __init__(self):
@@ -14,7 +15,7 @@ class NewsAPI(APIHandler.APIHandler):
         super().__init__()
 
     async def updateSources(self):
-        sources = await self.getAPI('https://newsapi.org/v2/sources?',{'apiKey':self.__apiKey})
+        sources = await self.getAPI('https://newsapi.org/v2/sources?', headers={'X-Api-Key':self.__apiKey})
         sourcesList = sources['sources']
 
         async for source in aiter(sourcesList):
@@ -29,6 +30,8 @@ class NewsAPI(APIHandler.APIHandler):
             post = {'_id':id, 'name':name, 'description':description, 'url':url, 'category':category, 'language':language, 'country':country}
             await self.database.update_one('NEWSAPI', 'sources', {'_id':id}, {'$set':post}, upsert=True)
 
+        return 'Update Complete.'
+
     async def getCategories(self):
         categories = await self.database.find('NEWSAPI', 'miscellaneous', {'_id':'Categories'})
         return categories[0]['CategoryList']
@@ -40,6 +43,10 @@ class NewsAPI(APIHandler.APIHandler):
     async def getCountries(self):
         countries = await self.database.find('NEWSAPI', 'miscellaneous', {'_id':'Countries'})
         return countries[0]['CountryList']
+
+    async def getSortBy(self):
+        sortBy = await self.database.find('NEWSAPI', 'miscellaneous', {'_id':'SortBy'})
+        return sortBy[0]['SortByList']
 
     async def queryCategory(self, categoryName):
         categoryList = await self.getCategories()
@@ -120,15 +127,14 @@ class NewsAPI(APIHandler.APIHandler):
                 raise ValueError('You cannot specify a country or category if you specify a source')
 
         if not filter:
-            raise TypeError('you need at least one parameter! (country, category, sources, query)')
+            raise TypeError('Search was too broad. You need at least one parameter! [country, category, sources, query]')
 
         # check if the filter/query is already in the database
         # if so, check if the date is outdated by a day or so
         # if it is update it, if not output it as the headlines for today
 
-        headlines = await self.getAPI('https://newsapi.org/v2/top-headlines?', {**filter, 'pageSize':100, 'apiKey':self.__apiKey})
-        return headlines
-
+        articles = await self.getAPI('https://newsapi.org/v2/top-headlines?', {**filter, 'pageSize':100}, {'X-Api-Key':self.__apiKey})
+        return articles
 
     async def getEverything(self, query='', titleSearch='', sources='', domains='', exludeDomains='', fromDate='', toDate='', language='', sortBy=''):
         search = {'q':query, 'qInTitle':titleSearch, 'sources':sources, 'domains':domains, 'excludeDomains':exludeDomains, 'from':fromDate, 'to':toDate, 'language':language, 'sortBy':sortBy}
@@ -136,10 +142,42 @@ class NewsAPI(APIHandler.APIHandler):
 
         if language:
             languageCode = await self.getLanguageCode(language)
-            filter['language'] = language
+            if languageCode:
+                filter['language'] = language
+            else:
+                raise ValueError(f'Invalid Language Provided: {language}')
+
+        if sources:
+            async for source in aiter(sources.split(',')):
+                sourceCheck = await self.querySource(source)
+                if not sourceCheck:
+                    raise ValueError(f'Invalid source(s) provided: {source}')
+
+        if fromDate:
+            initialDate = datetime.strptime(f'{fromDate}', '%B %d %Y').date()
+            fromDate = str(initialDate)
+
+        if toDate:
+            finalDate = datetime.strptime(f'{toDate}', '%B %d %Y').date()
+            toDate = str(finalDate)
+
+        if fromDate and toDate:
+            if finalDate < initialDate:
+                raise ValueError('The initial date cannot not be earlier than the final date!')
+
+        if sortBy:
+            sortByList = await self.getSortBy()
+            if sortBy not in sortByList:
+                raise ValueError(f'Invalid category provided ({sortBy}), can only sort articles by [relevancy, popularity, publishedAt]')
+
+        if not filter:
+            raise TypeError('Search was too broad. You need at least one parameter! [country, category, sources, query]')
+
+        articles = await self.getAPI('https://newsapi.org/v2/everything?', {**filter, 'pageSize':100}, {'X-Api-Key':self.__apiKey})
+        return articles
 
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(NewsAPI().getTopHeadlines())
+test = loop.run_until_complete(NewsAPI().getEverything(query='Minecraft',sortBy='relevancy'))
 print(test)
