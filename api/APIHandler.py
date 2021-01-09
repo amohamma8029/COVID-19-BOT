@@ -55,6 +55,8 @@ class APIHandler:
                 if r.status == 200:
                     data = await r.json()
                     return data
+                else:
+                    return r.status
 
 '''
 #TESTING ASYNC FUNCTIONS:

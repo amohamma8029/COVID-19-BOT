@@ -100,9 +100,9 @@ class NewsAPI(APIHandler.APIHandler):
 
         async for source in aiter(sourcesList):
             if source['name'] == sourceName:
-                return True
+                return source['_id']
         else:
-            return False
+            return None
 
     async def getTopHeadlines(self, country='', category='', sources='', query=''):
         search = {'country':country, 'category':category, 'sources':sources, 'q':query}
@@ -119,15 +119,19 @@ class NewsAPI(APIHandler.APIHandler):
 
         if sources:
             async for source in aiter(sources.split(',')):
-                sourceCheck = await self.querySource(source)
-                if not sourceCheck:
+                sourceID = await self.querySource(source)
+                if not sourceID:
                     raise ValueError(f'Invalid source(s) provided: {source}')
+                else:
+                    sourcesID = []
+                    sourcesID.append(sourceID)
+            filter['sources'] = ','.join(sourcesID)
 
             if country or category:
                 raise ValueError('You cannot specify a country or category if you specify a source')
 
-        if not filter:
-            raise TypeError('Search was too broad. You need at least one parameter! [country, category, sources, query]')
+        if not country and not category and not sources and not query:
+            raise TypeError('You need at least one of the required parameters! [country, category, sources, query]')
 
         # check if the filter/query is already in the database
         # if so, check if the date is outdated by a day or so
@@ -143,15 +147,19 @@ class NewsAPI(APIHandler.APIHandler):
         if language:
             languageCode = await self.getLanguageCode(language)
             if languageCode:
-                filter['language'] = language
+                filter['language'] = languageCode
             else:
                 raise ValueError(f'Invalid Language Provided: {language}')
 
         if sources:
             async for source in aiter(sources.split(',')):
-                sourceCheck = await self.querySource(source)
-                if not sourceCheck:
+                sourceID = await self.querySource(source)
+                if not sourceID:
                     raise ValueError(f'Invalid source(s) provided: {source}')
+                else:
+                    sourcesID = []
+                    sourcesID.append(sourceID)
+            filter['sources'] = ','.join(sourcesID)
 
         if fromDate:
             initialDate = datetime.strptime(f'{fromDate}', '%B %d %Y').date()
@@ -159,7 +167,10 @@ class NewsAPI(APIHandler.APIHandler):
 
         if toDate:
             finalDate = datetime.strptime(f'{toDate}', '%B %d %Y').date()
-            toDate = str(finalDate)
+            if finalDate > datetime.today().date():
+                raise ValueError("The final date cannot go past today's date!")
+            else:
+                toDate = str(finalDate)
 
         if fromDate and toDate:
             if finalDate < initialDate:
@@ -170,8 +181,12 @@ class NewsAPI(APIHandler.APIHandler):
             if sortBy not in sortByList:
                 raise ValueError(f'Invalid category provided ({sortBy}), can only sort articles by [relevancy, popularity, publishedAt]')
 
-        if not filter:
-            raise TypeError('Search was too broad. You need at least one parameter! [country, category, sources, query]')
+        if not query and not titleSearch and not sources and not domains:
+            raise TypeError('You need at least one of the required parameters! [query, titleSearch, sources, domains]')
+
+        # check if the filter/query is already in the database
+        # if so, check if the date is outdated by a day or so
+        # if it is update it, if not output it as the headlines for today
 
         articles = await self.getAPI('https://newsapi.org/v2/everything?', {**filter, 'pageSize':100}, {'X-Api-Key':self.__apiKey})
         return articles
@@ -179,5 +194,5 @@ class NewsAPI(APIHandler.APIHandler):
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(NewsAPI().getEverything(query='Minecraft',sortBy='relevancy'))
+test = loop.run_until_complete(NewsAPI().getSources())
 print(test)
