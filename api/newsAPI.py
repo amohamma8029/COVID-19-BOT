@@ -190,9 +190,10 @@ class NewsAPI(APIHandler.APIHandler):
 
         articles = await self.getAPI('https://newsapi.org/v2/everything?', {**filter, 'pageSize':100}, {'X-Api-Key':self.__apiKey})
         return articles
-
+'''
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
 test = loop.run_until_complete(NewsAPI().getSources())
 print(test)
+'''
