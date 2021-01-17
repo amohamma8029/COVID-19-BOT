@@ -158,26 +158,36 @@ class CovidAPI(APIHandler.APIHandler):
             type of graph, can choose from a bar graph (default) and pie chart
         """
         data = await self.queryDate(country, date) #grabs data for that date
-        stats = [data['deaths'], data['confirmed'], data['recovered'], data['new_confirmed'], data['new_recovered'], data['new_deaths'], data['active']] #puts the statistics in an array
+        if data:
+            stats = [data['deaths'], data['confirmed'], data['recovered'], data['new_confirmed'], data['new_recovered'], data['new_deaths'], data['active']] #puts the statistics in an array
 
-        # handles graphType
-        if graphType.lower() == 'bar':
-            labels = ['deaths', 'confirmed', 'recovered', 'new confirmed', 'new recovered', 'new deaths', 'active'] # sets the labels
-            plt.bar(labels, stats) # creates bar graph
-            plt.xticks(rotation=15) # gives the labels in the x-axis a 15 degree rotation to avoid overlapping
-            plt.tick_params(axis='x', which='major', labelsize=7) # adjusts label size
-        elif graphType.lower() == 'pie':
-            labels = [f'deaths - {stats[0]}', f'confirmed - {stats[1]}', f'recovered - {stats[2]}',
-                  f'new confirmed - {stats[3]}', f'new recovered - {stats[4]}', f'new deaths - {stats[5]}',
-                  f'active - {stats[6]}'] # formats the labels for the legend
-            pie = plt.pie(stats, startangle=90) # creates a pie chart
-            plt.legend(pie[0], labels, bbox_to_anchor=(-0.25,0.5), loc='center left') # formats the legend
-            plt.axis('equal') # equal aspect ratio ensures that pie is drawn as a circle.
+            # handles graphType
+            if graphType.lower() == 'bar':
+                labels = ['deaths', 'confirmed', 'recovered', 'new confirmed', 'new recovered', 'new deaths', 'active'] # sets the labels
+                plt.bar(labels, stats) # creates bar graph
+                plt.xticks(rotation=15) # gives the labels in the x-axis a 15 degree rotation to avoid overlapping
+                plt.tick_params(axis='x', which='major', labelsize=7) # adjusts label size
+                plt.ticklabel_format(style='plain', axis='y')
+                plt.title(f'Statistics for {country} on {date}')
+                plt.xlabel('Statistics')  # set label for x-axis
+                plt.ylabel('Cases')  # set label for y-axis
+            elif graphType.lower() == 'pie':
+                labels = [f'deaths - {stats[0]}', f'confirmed - {stats[1]}', f'recovered - {stats[2]}',
+                      f'new confirmed - {stats[3]}', f'new recovered - {stats[4]}', f'new deaths - {stats[5]}',
+                      f'active - {stats[6]}'] # formats the labels for the legend
+                pie = plt.pie(stats, startangle=90) # creates a pie chart
+                plt.legend(pie[0], labels, bbox_to_anchor=(-0.5,0.5), title=f"Statistics for {country} on {date}", loc='center left') # formats the legend
+                plt.axis('equal') # equal aspect ratio ensures that pie is drawn as a circle.
+                plt.title(f'Statistics for {country} on {date}')
+            else:
+                raise ValueError('invalid graph type')
 
-        plt.savefig('dateGraph', bbox_inches='tight') # saves graph as a file
-        plt.close() # closes the graph
+            plt.savefig('dateGraph.png', bbox_inches='tight') # saves graph as a file
+            plt.close() # closes the graph
 
-        return f'new {graphType} graph created (as dateGraph.png)'
+            return f'new {graphType} graph created (as dateGraph.png)'
+        else:
+            return False
 
     async def getTimelineGraph(self, country, statistic, graphType = 'line'):
         """Generates a graph that displays the timeline of a certain statistic overtime given a country and graph type
@@ -199,7 +209,7 @@ class CovidAPI(APIHandler.APIHandler):
 
         dateTimes = mdates.num2date(mdates.datestr2num(dates)) # convert date strings to datetime objects
         fig, ax = plt.subplots() # create two subplots
-        plt.ticklabel_format(style='plain') # too avoid weird values like 1e7
+        plt.ticklabel_format(style='plain') # to avoid weird values like 1e7
 
         # to handle the graph type
         if graphType.lower() == 'line':
@@ -236,9 +246,10 @@ class CovidAPI(APIHandler.APIHandler):
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(CovidAPI().queryDate('Canada', 'June 12 2019'))
+test = loop.run_until_complete(CovidAPI().getDateGraph('Japan', 'January 1 2021'))
 print(test)
 '''
+
 
 
 

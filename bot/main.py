@@ -1,4 +1,5 @@
 import discord
+import os
 from discord import Embed, Emoji
 from discord.ext import commands
 from typing import Union
@@ -7,6 +8,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 from api import covidAPI, newsAPI
 from utils.asyncOperations import *
+
+# TODO: add documentation
 
 client = commands.Bot(command_prefix='?')
 covidClient = covidAPI.CovidAPI()
@@ -17,7 +20,7 @@ async def on_ready():
     print('Bot is online!')
 
 @client.command()
-async def CovidCountries(ctx):
+async def covidCountries(ctx):
    countryList = await covidClient.getCountries()
    countryNames = [f"{country['name']} - :flag_{country['code'].lower()}:" async for country in aiter(countryList)]
    countries = [countryNames[x:x + 20] for x in range(0, len(countryNames), 20)]
@@ -25,7 +28,7 @@ async def CovidCountries(ctx):
    curPage = 1
 
    countryFormat = '\n'.join(countries[curPage-1])
-   message = await ctx.send(f"Page {curPage}/{pages}:\n{countryFormat}")
+   message = await ctx.send(f"**Page `{curPage}/{pages}`:**\n{countryFormat}")
 
    await message.add_reaction("⬅")
    await message.add_reaction("➡")
@@ -42,13 +45,13 @@ async def CovidCountries(ctx):
         if str(reaction.emoji) == "➡" and curPage != pages:
             curPage += 1
             countryFormat = '\n'.join(countries[curPage - 1])
-            await message.edit(content=f"Page {curPage}/{pages}:\n{countryFormat}")
+            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{countryFormat}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "⬅" and curPage > 1:
             curPage -= 1
             countryFormat = '\n'.join(countries[curPage - 1])
-            await message.edit(content=f"Page {curPage}/{pages}:\n{countryFormat}")
+            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{countryFormat}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "❌":
@@ -65,11 +68,7 @@ async def CovidCountries(ctx):
             # backwards on the first page
 
 @client.command()
-async def geturl(ctx, emoji: Union[discord.Emoji, discord.PartialEmoji]):
-    await ctx.send(emoji.url)
-
-@client.command()
-async def CountryStats(ctx, *args):
+async def countryStats(ctx, *args):
     country = ' '.join(args)
     code = await covidClient.getCountryCode(country)
     stats = await covidClient.getCountryStats(country)
@@ -118,6 +117,247 @@ async def CountryStats(ctx, *args):
     embed.add_field(name='Cases (Per Million)', value=formatStats[10], inline=False)
 
     await ctx.send(embed=embed)
+
+@client.command()
+async def getTimeline(ctx, *args):
+    country = ' '.join(args)
+    timeline = await covidClient.getCountryTimeline(country)
+    pages = len(timeline)
+    curPage = 1
+
+    timelineDay = timeline[curPage-1]
+    date = timelineDay['date']
+    deaths = timelineDay['deaths']
+    confirmed = timelineDay['confirmed']
+    active = timelineDay['active']
+    recovered = timelineDay['recovered']
+    newConfirmed = timelineDay['new_confirmed']
+    newRecovered = timelineDay['new_recovered']
+    newDeaths = timelineDay['new_deaths']
+
+    embed = discord.Embed(
+        title='Statistics Timeline',
+        description=f'Displaying all COVID-19 related statistics for {country} during {date}',
+        color=discord.Colour.blue()
+    )
+
+    embed.set_footer(text='data retrieved from: https://about-corona.net/')
+
+    if country.lower() != 'global':
+        code = await covidClient.getCountryCode(country)
+        embed.set_thumbnail(url=f'https://www.countryflags.io/{code.lower()}/flat/64.png')
+
+    embed.add_field(name='Country Name', value=country, inline=False)
+    embed.add_field(name='Deaths (Total)', value=deaths, inline=False)
+    embed.add_field(name='Confirmed (Total)', value=confirmed)
+    embed.add_field(name='Active', value=active)
+    embed.add_field(name='Recovered (Total)', value=recovered)
+    embed.add_field(name='Confirmed (New)', value=newConfirmed)
+    embed.add_field(name='Recovered (New)', value=newRecovered)
+    embed.add_field(name='Deaths (New)', value=newDeaths)
+
+    message = await ctx.send(embed=embed)
+
+    await message.add_reaction("⬅")
+    await message.add_reaction("➡")
+    await message.add_reaction("❌")
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"]
+        # This makes sure nobody except the command sender can interact with the "menu"
+
+    while True:
+        reaction, user = await client.wait_for("reaction_add", check=check)
+        # waiting for a reaction to be added
+
+        if str(reaction.emoji) == "➡" and curPage != pages:
+            curPage += 1
+
+            timelineDay = timeline[curPage - 1]
+            date = timelineDay['date']
+            deaths = timelineDay['deaths']
+            confirmed = timelineDay['confirmed']
+            active = timelineDay['active']
+            recovered = timelineDay['recovered']
+            newConfirmed = timelineDay['new_confirmed']
+            newRecovered = timelineDay['new_recovered']
+            newDeaths = timelineDay['new_deaths']
+
+            embed = discord.Embed(
+                title='Statistics Timeline',
+                description=f'Displaying all COVID-19 related statistics for {country} during {date}',
+                color=discord.Colour.blue()
+            )
+
+            embed.set_footer(text='data retrieved from: https://about-corona.net/')
+
+            if country.lower() != 'global':
+                code = await covidClient.getCountryCode(country)
+                embed.set_thumbnail(url=f'https://www.countryflags.io/{code.lower()}/flat/64.png')
+
+            embed.add_field(name='Country Name', value=country, inline=False)
+            embed.add_field(name='Deaths (Total)', value=deaths, inline=False)
+            embed.add_field(name='Confirmed (Total)', value=confirmed)
+            embed.add_field(name='Active', value=active)
+            embed.add_field(name='Recovered (Total)', value=recovered)
+            embed.add_field(name='Confirmed (New)', value=newConfirmed)
+            embed.add_field(name='Recovered (New)', value=newRecovered)
+            embed.add_field(name='Deaths (New)', value=newDeaths)
+
+            await message.edit(embed=embed)
+            await message.remove_reaction(reaction, user)
+
+        elif str(reaction.emoji) == "⬅" and curPage > 1:
+            curPage -= 1
+
+            timelineDay = timeline[curPage - 1]
+            date = timelineDay['date']
+            deaths = timelineDay['deaths']
+            confirmed = timelineDay['confirmed']
+            active = timelineDay['active']
+            recovered = timelineDay['recovered']
+            newConfirmed = timelineDay['new_confirmed']
+            newRecovered = timelineDay['new_recovered']
+            newDeaths = timelineDay['new_deaths']
+
+            embed = discord.Embed(
+                title='Statistics Timeline',
+                description=f'Displaying all COVID-19 related statistics for {country} during {date}',
+                color=discord.Colour.blue()
+            )
+
+            embed.set_footer(text='data retrieved from: https://about-corona.net/')
+
+            if country.lower() != 'global':
+                code = await covidClient.getCountryCode(country)
+                embed.set_thumbnail(url=f'https://www.countryflags.io/{code.lower()}/flat/64.png')
+
+            embed.add_field(name='Country Name', value=country, inline=False)
+            embed.add_field(name='Deaths (Total)', value=deaths, inline=False)
+            embed.add_field(name='Confirmed (Total)', value=confirmed)
+            embed.add_field(name='Active', value=active)
+            embed.add_field(name='Recovered (Total)', value=recovered)
+            embed.add_field(name='Confirmed (New)', value=newConfirmed)
+            embed.add_field(name='Recovered (New)', value=newRecovered)
+            embed.add_field(name='Deaths (New)', value=newDeaths)
+
+            await message.edit(embed=embed)
+            await message.remove_reaction(reaction, user)
+
+        elif str(reaction.emoji) == "❌":
+            await message.remove_reaction(reaction, user)
+            await message.remove_reaction("⬅", client.user)
+            await message.remove_reaction("➡", client.user)
+            await message.remove_reaction("❌", client.user)
+            # await message.delete()
+            break
+
+        else:
+            await message.remove_reaction(reaction, user)
+            # removes reactions if the user tries to go forward on the last page or
+            # backwards on the first page
+
+@client.command()
+async def getDateStats(ctx, *args):
+    countryList = await covidClient.getCountries()
+    countries = [country['name'] async for country in aiter(countryList)]
+
+    data = ' '.join(args)
+
+    async for country in aiter(countries):
+        if country in data:
+            queryCountry = country
+            break
+
+    queryDate = data.replace(f'{queryCountry} ', '')
+
+    dateStats = await covidClient.queryDate(queryCountry, queryDate)
+
+    if dateStats:
+        date = dateStats['date']
+        deaths = dateStats['deaths']
+        confirmed = dateStats['confirmed']
+        active = dateStats['active']
+        recovered = dateStats['recovered']
+        newConfirmed = dateStats['new_confirmed']
+        newRecovered = dateStats['new_recovered']
+        newDeaths = dateStats['new_deaths']
+
+        embed = discord.Embed(
+            title=f'Statistics on {queryDate}',
+            description=f'Displaying all COVID-19 related statistics for {country} on {queryDate}',
+            color=discord.Colour.blue()
+        )
+
+        embed.set_footer(text='data retrieved from: https://about-corona.net/')
+
+        if country.lower() != 'global':
+            code = await covidClient.getCountryCode(country)
+            embed.set_thumbnail(url=f'https://www.countryflags.io/{code.lower()}/flat/64.png')
+
+        embed.add_field(name='Country Name', value=country, inline=False)
+        embed.add_field(name='Deaths (Total)', value=deaths, inline=False)
+        embed.add_field(name='Confirmed (Total)', value=confirmed)
+        embed.add_field(name='Active', value=active)
+        embed.add_field(name='Recovered (Total)', value=recovered)
+        embed.add_field(name='Confirmed (New)', value=newConfirmed)
+        embed.add_field(name='Recovered (New)', value=newRecovered)
+        embed.add_field(name='Deaths (New)', value=newDeaths)
+
+        await ctx.send(embed=embed)
+    else:
+        embed = discord.Embed(
+            title=f'Statistics on {queryDate}',
+            description='No data could be provided...',
+            color=discord.Colour.blue()
+        )
+
+        embed.add_field(name='No Data', value='No data could be provided with this query, sorry!', inline=False)
+
+        await ctx.send(embed=embed)
+
+@client.command()
+async def dateGraph(ctx, *args):
+
+    # TODO: FIX INPUT SO THAT IF USER LEAVES GRAPHTYPE PARAM EMPTY IT DOES A BAR GRAPH BY DEFAULT
+
+    countryList = await covidClient.getCountries()
+    countries = [country['name'] async for country in aiter(countryList)]
+    graphTypes = ['bar', 'pie']
+
+    data = ' '.join(args)
+
+    async for country in aiter(countries):
+        if country in data:
+            queryCountry = country
+            break # break statement is used to not accidentally use a country name with a similar name, for example 'American Samoa' and 'Samoa'
+
+    new_data = data.replace(f'{queryCountry} ', '')
+
+    async for graphType in aiter(graphTypes):
+        if graphType in new_data:
+            queryGraph = graphType
+            queryDate = new_data.replace(f' {queryGraph}', '')
+            break
+    else:
+        await ctx.send('invalid graph type!')
+
+    graph = await covidClient.getDateGraph(queryCountry, queryDate, queryGraph)
+
+    if graph:
+        image = discord.File("dateGraph.png")
+        await ctx.send(file=image)
+        os.remove("dateGraph.png")
+    else:
+        embed = discord.Embed(
+            title=f'Graph for {queryCountry} on {queryDate}',
+            description='No data could be provided...',
+            color=discord.Colour.blue()
+        )
+
+        embed.add_field(name='No Data', value='No data could be provided with this query, sorry!', inline=False)
+
+        await ctx.send(embed=embed)
 
 # https://stackoverflow.com/questions/61787520/i-want-to-make-a-multi-page-help-command-using-discord-py
 # https://stackoverflow.com/questions/9671224/split-a-python-list-into-other-sublists-i-e-smaller-lists
