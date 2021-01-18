@@ -136,10 +136,6 @@ class NewsAPI(APIHandler.APIHandler):
         if not country and not category and not sources and not query:
             raise TypeError('You need at least one of the required parameters! [country, category, sources, query]')
 
-        # check if the filter/query is already in the database
-        # if so, check if the date is outdated by a day or so
-        # if it is update it, if not output it as the headlines for today
-
         articles = await self.getAPI('https://newsapi.org/v2/top-headlines?', {**filter, 'pageSize':100}, {'X-Api-Key':self.apiKey})
         return articles
 
@@ -186,10 +182,6 @@ class NewsAPI(APIHandler.APIHandler):
 
         if not query and not titleSearch and not sources and not domains:
             raise TypeError('You need at least one of the required parameters! [query, titleSearch, sources, domains]')
-
-        # check if the filter/query is already in the database
-        # if so, check if the date is outdated by a day or so
-        # if it is update it, if not output it as the headlines for today
 
         articles = await self.getAPI('https://newsapi.org/v2/everything?', {**filter, 'pageSize':100}, {'X-Api-Key':self.apiKey})
         return articles

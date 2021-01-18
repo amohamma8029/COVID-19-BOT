@@ -13,7 +13,7 @@ from utils.asyncOperations import *
 
 client = commands.Bot(command_prefix='?')
 covidClient = covidAPI.CovidAPI()
-newsAPI = newsAPI.NewsAPI()
+newsAPIClient = newsAPI.NewsAPI()
 
 @client.event
 async def on_ready():
@@ -23,7 +23,7 @@ async def on_ready():
 async def covidCountries(ctx):
    countryList = await covidClient.getCountries()
    countryNames = [f"{country['name']} - :flag_{country['code'].lower()}:" async for country in aiter(countryList)]
-   countries = [countryNames[x:x + 20] for x in range(0, len(countryNames), 20)]
+   countries = [countryNames[x:x + 20] async for x in aiter(range(0, len(countryNames), 20))]
    pages = len(countries)
    curPage = 1
 
@@ -402,6 +402,69 @@ async def timelineGraph(ctx, *args):
 
         embed.add_field(name='No Data', value='No data could be provided with this query, sorry!', inline=False)
         await ctx.send(embed=embed)
+
+@client.command()
+async def newsSources(ctx):
+    sourcesList = await newsAPIClient.getSources()
+
+    if sourcesList:
+        sourceData = [f"```name: {source['name']}\ncountry: {source['country']}\ncategory: {source['category']}\nlanguage: {source['language']}\nurl: {source['url']}\ndescription: {source['description']}```" async for source in aiter(sourcesList)]
+    else:
+        embed = discord.Embed(
+            title=f'News Sources',
+            description='No sources could be provided...',
+            color=discord.Colour.blue()
+        )
+
+        embed.add_field(name='No Data', value='No available news sources could be provided with this query, sorry!', inline=False)
+        await ctx.send(embed=embed)
+
+    sources = [sourceData[x:x + 5] async for x in aiter(range(0, len(sourceData), 5))]
+    result = [''.join(source) async for source in aiter(sources)]
+
+    pages = len(sources)
+    curPage = 1
+
+    message = await ctx.send(f"**Page `{curPage}/{pages}`:**\n{result[curPage-1]}")
+
+    await message.add_reaction("⬅")
+    await message.add_reaction("➡")
+    await message.add_reaction("❌")
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"]
+        # This makes sure nobody except the command sender can interact with the "menu"
+
+    while True:
+        reaction, user = await client.wait_for("reaction_add", check=check)
+        # waiting for a reaction to be added
+
+        if str(reaction.emoji) == "➡" and curPage != pages:
+            curPage += 1
+            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{result[curPage-1]}")
+            await message.remove_reaction(reaction, user)
+
+        elif str(reaction.emoji) == "⬅" and curPage > 1:
+            curPage -= 1
+            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{result[curPage-1]}")
+            await message.remove_reaction(reaction, user)
+
+        elif str(reaction.emoji) == "❌":
+            await message.remove_reaction(reaction, user)
+            await message.remove_reaction("⬅", client.user)
+            await message.remove_reaction("➡", client.user)
+            await message.remove_reaction("❌", client.user)
+            # await message.delete()
+            break
+
+        else:
+            await message.remove_reaction(reaction, user)
+            # removes reactions if the user tries to go forward on the last page or
+            # backwards on the first page
+
+@client.command()
+async def newsLanguages(ctx):
+    pass
 
 # https://stackoverflow.com/questions/61787520/i-want-to-make-a-multi-page-help-command-using-discord-py
 # https://stackoverflow.com/questions/9671224/split-a-python-list-into-other-sublists-i-e-smaller-lists
