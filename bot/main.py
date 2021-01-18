@@ -357,7 +357,50 @@ async def dateGraph(ctx, *args):
         )
 
         embed.add_field(name='No Data', value='No data could be provided with this query, sorry!', inline=False)
+        await ctx.send(embed=embed)
 
+@client.command()
+async def timelineGraph(ctx, *args):
+    countryList = await covidClient.getCountries()
+    countries = [country['name'] async for country in aiter(countryList)]
+    graphTypes = ['line', 'bar', 'scatter']
+
+    data = ' '.join(args)
+
+    async for country in aiter(countries):
+        if country in data:
+            queryCountry = country
+            break
+    else:
+        raise ValueError('Invalid Country Name')
+
+    newData = data.replace(f'{queryCountry} ', '')
+
+    async for graphType in aiter(graphTypes):
+        if graphType in newData:
+            queryGraph = graphType
+            queryStat = newData.replace(f' {queryGraph}', '')
+            graph = await covidClient.getTimelineGraph(queryCountry, queryStat, queryGraph)
+            break
+    else:
+        if len(newData.split(' ')) > 2:
+            raise ValueError('Invalid graph type')
+        else:
+            queryStats = newData
+            graph = await covidClient.getTimelineGraph(queryCountry, queryStats)
+
+    if graph:
+        image = discord.File("timelineGraph.png")
+        await ctx.send(file=image)
+        os.remove("timelineGraph.png")
+    else:
+        embed = discord.Embed(
+            title=f'Graph For Data Over Time in {queryCountry}',
+            description='No data could be provided...',
+            color=discord.Colour.blue()
+        )
+
+        embed.add_field(name='No Data', value='No data could be provided with this query, sorry!', inline=False)
         await ctx.send(embed=embed)
 
 # https://stackoverflow.com/questions/61787520/i-want-to-make-a-multi-page-help-command-using-discord-py

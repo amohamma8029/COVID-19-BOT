@@ -180,7 +180,7 @@ class CovidAPI(APIHandler.APIHandler):
                 plt.axis('equal') # equal aspect ratio ensures that pie is drawn as a circle.
                 plt.title(f'Statistics for {country} on {date}')
             else:
-                raise ValueError('invalid graph type')
+                raise ValueError('Invalid graph type.')
 
             plt.savefig('dateGraph.png', bbox_inches='tight') # saves graph as a file
             plt.close() # closes the graph
@@ -204,43 +204,51 @@ class CovidAPI(APIHandler.APIHandler):
             type of graph, can choose from a line (default value), bar, and scatter plot
         """
         countryTimeline = await self.getCountryTimeline(country) # grabs timeline
-        dates = [countryTimeline[i]['date'] async for i in aiter(range(len(countryTimeline)))] # grabs dates and puts it in an array
-        stat = [countryTimeline[i][f'{statistic}'] async for i in aiter(range(len(countryTimeline)))] # grabs the statistics and puts it in an array
 
-        dateTimes = mdates.num2date(mdates.datestr2num(dates)) # convert date strings to datetime objects
-        fig, ax = plt.subplots() # create two subplots
-        plt.ticklabel_format(style='plain') # to avoid weird values like 1e7
+        if countryTimeline:
+            dates = [countryTimeline[i]['date'] async for i in aiter(range(len(countryTimeline)))] # grabs dates and puts it in an array
+            stat = [countryTimeline[i][f'{statistic}'] async for i in aiter(range(len(countryTimeline)))] # grabs the statistics and puts it in an array
 
-        # to handle the graph type
-        if graphType.lower() == 'line':
-            ax.plot(dateTimes, stat)
-        elif graphType.lower() == 'bar':
-            ax.bar(dateTimes, stat)
-        elif graphType.lower() == 'scatter':
-            ax.scatter(dateTimes, stat)
+            dateTimes = mdates.num2date(mdates.datestr2num(dates)) # convert date strings to datetime objects
+            fig, ax = plt.subplots() # create two subplots
+            plt.ticklabel_format(style='plain') # to avoid weird values like 1e7
 
-        # properly formats the title based on the statistic
-        if statistic in ['new_confirmed', 'new_recovered', 'new_deaths']:
-            formatStatistic = string.capwords(statistic.replace('_', ' '))
-            if 'Deaths' in formatStatistic:
-                plt.title(f'# of {formatStatistic} Over Time ({country.capitalize()})')
+            # to handle the graph type
+            if graphType.lower() == 'line':
+                ax.plot(dateTimes, stat)
+            elif graphType.lower() == 'bar':
+                ax.bar(dateTimes, stat)
+            elif graphType.lower() == 'scatter':
+                ax.scatter(dateTimes, stat)
             else:
-                plt.title(f'# of {formatStatistic} Cases Over Time ({country.capitalize()})')
+                raise ValueError('Invalid graph type.')
+
+            # properly formats the title based on the statistic
+            if statistic in ['new_confirmed', 'new_recovered', 'new_deaths']:
+                formatStatistic = string.capwords(statistic.replace('_', ' '))
+                if 'Deaths' in formatStatistic:
+                    plt.title(f'# of {formatStatistic} Over Time ({country.capitalize()})')
+                else:
+                    plt.title(f'# of {formatStatistic} Cases Over Time ({country.capitalize()})')
+            elif statistic in ['deaths', 'confirmed', 'recovered', 'active']:
+                formatStatistic = statistic.capitalize()
+                if 'Deaths' in formatStatistic:
+                    plt.title(f'# of {formatStatistic} Over Time ({country.capitalize()})')
+                else:
+                    plt.title(f'# of {formatStatistic} Cases Over Time ({country.capitalize()})')
+            else:
+                raise ValueError('Invalid statistic.')
+
+            plt.xlabel('Dates') # set label for x-axis
+            plt.ylabel('Cases') # set label for y-axis
+            fig.autofmt_xdate() # interprets the x-axis as dates and neatly formats it to avoid any messy overlapping
+
+            plt.savefig('timelineGraph.png') # saves graph as file NOTE: use os.remove('timelineGraph.png') in bot function
+            plt.close() # closes the graph
+
+            return f'new {graphType} graph created (as timelineGraph.png)'
         else:
-            formatStatistic = statistic.capitalize()
-            if 'Deaths' in formatStatistic:
-                plt.title(f'# of {formatStatistic} Over Time ({country.capitalize()})')
-            else:
-                plt.title(f'# of {formatStatistic} Cases Over Time ({country.capitalize()})')
-
-        plt.xlabel('Dates') # set label for x-axis
-        plt.ylabel('Cases') # set label for y-axis
-        fig.autofmt_xdate() # interprets the x-axis as dates and neatly formats it to avoid any messy overlapping
-
-        plt.savefig('timelineGraph.png') # saves graph as file NOTE: use os.remove('timelineGraph.png') in bot function
-        plt.close() # closes the graph
-
-        return f'new {graphType} graph created (as timelineGraph.png)'
+            return False
 
 '''
 #TESTING ASYNC FUNCTIONS:
