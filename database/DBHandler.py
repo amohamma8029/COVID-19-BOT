@@ -1,5 +1,5 @@
 import pymongo
-# from pymongo import MongoClient
+import os
 from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
 from utils.asyncOperations import *
@@ -10,7 +10,7 @@ from utils.asyncOperations import *
 
 class DatabaseHandler:
     def __init__(self, defaultDB=''):
-        self.__password = 'kemp1935' # make this into .env variable, double underscore added to avoid accidental re-write (constant)
+        self.__password = 'kemp1935'
         self.cluster = AsyncIOMotorClient(f'mongodb+srv://admin:{self.__password}@cluster0.6cb7x.mongodb.net/{defaultDB}?retryWrites=true&w=majority')
 
     async def find(self, database, collection, search = {}):
@@ -47,10 +47,8 @@ class DatabaseHandler:
         db = self.cluster[database]
         await db[collection].update_many(document, post, upsert)
 
-'''
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(DatabaseHandler().delete_many('NEWSAPI', 'sources', {}))
+test = loop.run_until_complete(DatabaseHandler().find('NEWSAPI', 'sources'))
 print(test)
-'''
