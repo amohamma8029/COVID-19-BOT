@@ -163,7 +163,7 @@ class CovidAPI(APIHandler.APIHandler):
 
             # handles graphType
             if graphType.lower() == 'bar':
-                labels = ['deaths', 'confirmed', 'recovered', 'new confirmed', 'new recovered', 'new deaths', 'active'] # sets the labels
+                labels = ['deaths', 'confirmed', 'recovered', '(new) confirmed', '(new) recovered', '(new) deaths', 'active'] # sets the labels
                 plt.bar(labels, stats) # creates bar graph
                 plt.xticks(rotation=15) # gives the labels in the x-axis a 15 degree rotation to avoid overlapping
                 plt.tick_params(axis='x', which='major', labelsize=7) # adjusts label size
@@ -173,7 +173,7 @@ class CovidAPI(APIHandler.APIHandler):
                 plt.ylabel('Cases')  # set label for y-axis
             elif graphType.lower() == 'pie':
                 labels = [f'deaths - {stats[0]}', f'confirmed - {stats[1]}', f'recovered - {stats[2]}',
-                      f'new confirmed - {stats[3]}', f'new recovered - {stats[4]}', f'new deaths - {stats[5]}',
+                      f'(new) confirmed - {stats[3]}', f'(new) recovered - {stats[4]}', f'(new) deaths - {stats[5]}',
                       f'active - {stats[6]}'] # formats the labels for the legend
                 pie = plt.pie(stats, startangle=90) # creates a pie chart
                 plt.legend(pie[0], labels, bbox_to_anchor=(-0.5,0.5), title=f"Statistics for {country} on {date}", loc='center left') # formats the legend

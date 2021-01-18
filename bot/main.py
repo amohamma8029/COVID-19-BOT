@@ -318,31 +318,32 @@ async def getDateStats(ctx, *args):
 
 @client.command()
 async def dateGraph(ctx, *args):
-
-    # TODO: FIX INPUT SO THAT IF USER LEAVES GRAPHTYPE PARAM EMPTY IT DOES A BAR GRAPH BY DEFAULT
-
     countryList = await covidClient.getCountries()
     countries = [country['name'] async for country in aiter(countryList)]
     graphTypes = ['bar', 'pie']
-
     data = ' '.join(args)
 
     async for country in aiter(countries):
         if country in data:
             queryCountry = country
-            break # break statement is used to not accidentally use a country name with a similar name, for example 'American Samoa' and 'Samoa'
-
-    new_data = data.replace(f'{queryCountry} ', '')
-
-    async for graphType in aiter(graphTypes):
-        if graphType in new_data:
-            queryGraph = graphType
-            queryDate = new_data.replace(f' {queryGraph}', '')
             break
     else:
-        await ctx.send('invalid graph type!')
+        raise ValueError('Invalid Country Name')
 
-    graph = await covidClient.getDateGraph(queryCountry, queryDate, queryGraph)
+    newData = data.replace(f'{queryCountry} ', '')
+
+    async for graphType in aiter(graphTypes):
+        if graphType in newData:
+            queryGraph = graphType
+            queryDate = newData.replace(f' {queryGraph}', '')
+            graph = await covidClient.getDateGraph(queryCountry, queryDate, queryGraph)
+            break
+    else:
+        if len(newData.split(' ')) > 3:
+            raise ValueError('Invalid graph type')
+        else:
+            queryDate = newData
+            graph = await covidClient.getDateGraph(queryCountry, queryDate)
 
     if graph:
         image = discord.File("dateGraph.png")
