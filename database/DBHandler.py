@@ -1,17 +1,15 @@
 import pymongo
+import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
-import asyncio
 from utils.asyncOperations import *
-
-# TODO: make sure to add environment variables
-# TODO: add error handling in case database name is incorrect
-# TODO: add .env variables to dbpassword
+from dotenv import load_dotenv
+load_dotenv()
 
 class DatabaseHandler:
     def __init__(self, defaultDB=''):
-        self.__password = 'kemp1935'
-        self.cluster = AsyncIOMotorClient(f'mongodb+srv://admin:{self.__password}@cluster0.6cb7x.mongodb.net/{defaultDB}?retryWrites=true&w=majority')
+        self.password = os.getenv('DB_PASS') # environment variable is used for security purposes.
+        self.cluster = AsyncIOMotorClient(f'mongodb+srv://admin:{self.password}@cluster0.6cb7x.mongodb.net/{defaultDB}?retryWrites=true&w=majority')
 
     async def find(self, database, collection, search = {}):
         db = self.cluster[database]
@@ -47,8 +45,10 @@ class DatabaseHandler:
         db = self.cluster[database]
         await db[collection].update_many(document, post, upsert)
 
+'''
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
 test = loop.run_until_complete(DatabaseHandler().find('NEWSAPI', 'sources'))
 print(test)
+'''

@@ -1,8 +1,11 @@
 import asyncio
+import os
 from api import APIHandler
 from database.DBHandler import DatabaseHandler
 from utils.asyncOperations import *
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 # TODO: add documentation
 
@@ -10,12 +13,12 @@ from datetime import datetime
 
 class NewsAPI(APIHandler.APIHandler):
     def __init__(self):
-        self.__apiKey = 'e389c21d0c544790b26d548fd5e620d1' # make this into .env variable, double underscore added to avoid accidental re-write (constant)
+        self.apiKey = os.getenv('NEWS_API_KEY') # environment variable is used for security purposes.
         self.database = DatabaseHandler()
         super().__init__()
 
     async def updateSources(self):
-        sources = await self.getAPI('https://newsapi.org/v2/sources?', headers={'X-Api-Key':self.__apiKey})
+        sources = await self.getAPI('https://newsapi.org/v2/sources?', headers={'X-Api-Key':self.apiKey})
         sourcesList = sources['sources']
 
         async for source in aiter(sourcesList):
@@ -137,7 +140,7 @@ class NewsAPI(APIHandler.APIHandler):
         # if so, check if the date is outdated by a day or so
         # if it is update it, if not output it as the headlines for today
 
-        articles = await self.getAPI('https://newsapi.org/v2/top-headlines?', {**filter, 'pageSize':100}, {'X-Api-Key':self.__apiKey})
+        articles = await self.getAPI('https://newsapi.org/v2/top-headlines?', {**filter, 'pageSize':100}, {'X-Api-Key':self.apiKey})
         return articles
 
     async def getEverything(self, query='', titleSearch='', sources='', domains='', exludeDomains='', fromDate='', toDate='', language='', sortBy=''):
@@ -188,12 +191,13 @@ class NewsAPI(APIHandler.APIHandler):
         # if so, check if the date is outdated by a day or so
         # if it is update it, if not output it as the headlines for today
 
-        articles = await self.getAPI('https://newsapi.org/v2/everything?', {**filter, 'pageSize':100}, {'X-Api-Key':self.__apiKey})
+        articles = await self.getAPI('https://newsapi.org/v2/everything?', {**filter, 'pageSize':100}, {'X-Api-Key':self.apiKey})
         return articles
+
 '''
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(NewsAPI().getSources())
+test = loop.run_until_complete(NewsAPI().getEverything('COVID-19'))
 print(test)
 '''
