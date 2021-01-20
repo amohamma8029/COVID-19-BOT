@@ -19,6 +19,7 @@ newsAPIClient = newsAPI.NewsAPI()
 async def on_ready():
     print('Bot is online!')
 
+# TODO: ADD TIMEOUT TO THE COMMANDS INCASE USER DECIDES NOT TO RESPOND
 @client.command()
 async def covidCountries(ctx):
    countryList = await covidClient.getCountries()
@@ -28,30 +29,26 @@ async def covidCountries(ctx):
    curPage = 1
 
    countryFormat = '\n'.join(countries[curPage-1])
-   message = await ctx.send(f"**Page `{curPage}/{pages}`:**\n{countryFormat}")
+   message = await ctx.send(f"**__LIST OF COUNTRIES__ (COVID-19 API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
 
    await message.add_reaction("⬅")
    await message.add_reaction("➡")
    await message.add_reaction("❌")
 
-   def check(reaction, user):
-       return user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"]
-       # This makes sure nobody except the command sender can interact with the "menu"
-
    while True:
-        reaction, user = await client.wait_for("reaction_add", check = check)
+        reaction, user = await client.wait_for("reaction_add", check = lambda reaction, user : user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id)
         # waiting for a reaction to be added
 
         if str(reaction.emoji) == "➡" and curPage != pages:
             curPage += 1
             countryFormat = '\n'.join(countries[curPage - 1])
-            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{countryFormat}")
+            await message.edit(content=f"**__LIST OF COUNTRIES__ (COVID-19 API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "⬅" and curPage > 1:
             curPage -= 1
             countryFormat = '\n'.join(countries[curPage - 1])
-            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{countryFormat}")
+            await message.edit(content=f"**__LIST OF COUNTRIES__ (COVID-19 API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "❌":
@@ -118,6 +115,7 @@ async def countryStats(ctx, *args):
 
     await ctx.send(embed=embed)
 
+# TODO: ADD TIMEOUT TO THE COMMANDS INCASE USER DECIDES NOT TO RESPOND
 @client.command()
 async def getTimeline(ctx, *args):
     country = ' '.join(args)
@@ -162,12 +160,8 @@ async def getTimeline(ctx, *args):
     await message.add_reaction("➡")
     await message.add_reaction("❌")
 
-    def check(reaction, user):
-        return user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"]
-        # This makes sure nobody except the command sender can interact with the "menu"
-
     while True:
-        reaction, user = await client.wait_for("reaction_add", check=check)
+        reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user : user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id)
         # waiting for a reaction to be added
 
         if str(reaction.emoji) == "➡" and curPage != pages:
@@ -403,6 +397,9 @@ async def timelineGraph(ctx, *args):
         embed.add_field(name='No Data', value='No data could be provided with this query, sorry!', inline=False)
         await ctx.send(embed=embed)
 
+
+# TODO: ADD FILTERING OF SOURCES
+# TODO: ADD TIMEOUT TO THE COMMANDS INCASE USER DECIDES NOT TO RESPOND
 @client.command()
 async def newsSources(ctx):
     sourcesList = await newsAPIClient.getSources()
@@ -420,33 +417,356 @@ async def newsSources(ctx):
         await ctx.send(embed=embed)
 
     sources = [sourceData[x:x + 5] async for x in aiter(range(0, len(sourceData), 5))]
-    result = [''.join(source) async for source in aiter(sources)]
+    result = [''.join(page) async for page in aiter(sources)]
 
     pages = len(sources)
     curPage = 1
 
-    message = await ctx.send(f"**Page `{curPage}/{pages}`:**\n{result[curPage-1]}")
+    message = await ctx.send(f"**__LIST OF KNOWN NEWS SOURCES__ [Page `{curPage}/{pages}`]**\n{result[curPage-1]}")
 
     await message.add_reaction("⬅")
     await message.add_reaction("➡")
     await message.add_reaction("❌")
 
-    def check(reaction, user):
-        return user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"]
-        # This makes sure nobody except the command sender can interact with the "menu"
-
     while True:
-        reaction, user = await client.wait_for("reaction_add", check=check)
+        reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user : user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id)
         # waiting for a reaction to be added
 
         if str(reaction.emoji) == "➡" and curPage != pages:
             curPage += 1
-            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{result[curPage-1]}")
+            await message.edit(content=f"**__LIST OF KNOWN NEWS SOURCES__ [Page `{curPage}/{pages}`]**\n{result[curPage-1]}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "⬅" and curPage > 1:
             curPage -= 1
-            await message.edit(content=f"**Page `{curPage}/{pages}`:**\n{result[curPage-1]}")
+            await message.edit(content=f"**__LIST OF KNOWN NEWS SOURCES__ [Page `{curPage}/{pages}`]**\n{result[curPage-1]}")
+            await message.remove_reaction(reaction, user)
+
+        elif str(reaction.emoji) == "❌":
+            await message.remove_reaction(reaction, user)
+            await message.remove_reaction("⬅", client.user)
+            await message.remove_reaction("➡", client.user)
+            await message.remove_reaction("❌", client.user)
+            # await message.delete()
+            break
+
+        else:
+            await message.remove_reaction(reaction, user)
+            # removes reactions if the user tries to go forward on the last page or
+            # backwards on the first page
+
+# TODO: ADD TIMEOUT TO THE COMMANDS INCASE USER DECIDES NOT TO RESPOND
+# TODO: ADD ERROR HANDLING
+@client.command()
+async def newsHeadlines(ctx):
+    countryResponse = 'None'
+    categoryResponse = 'None'
+    sourcesResponse = ['None']
+    queryResponse = 'None'
+
+    menu = discord.Embed(
+        title='**__News Headlines Search__**',
+        description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+        color=discord.Colour.blue()
+    )
+
+    menu.add_field(name='**:earth_americas: Country**', value=countryResponse, inline=False)
+    menu.add_field(name='**:file_folder: Category**', value=categoryResponse, inline=False)
+    menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+    menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+
+    message = await ctx.send(embed=menu)
+
+    await message.add_reaction("🌎")
+    await message.add_reaction("📁")
+    await message.add_reaction("📰")
+    await message.add_reaction("❓")
+    await message.add_reaction("🔎")
+
+    while True:
+        reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user : user == ctx.author and str(reaction.emoji) in ["🌎","📁","📰","❓","🔎"] and reaction.message.id == message.id)
+
+        if str(reaction.emoji) == "🌎":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me what **country** you'd like to search articles in.")
+            userInput = await client.wait_for("message", check=lambda message : message.author == ctx.author) # ADD TIMEOUT
+            countryCheck = await newsAPIClient.queryCountry(userInput.content)
+
+            if countryCheck:
+                countryResponse = userInput.content
+                menu = discord.Embed(
+                    title='**__News Headlines Search__**',
+                    description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                    color=discord.Colour.blue()
+                )
+
+                menu.add_field(name='**:earth_americas: Country**', value=countryResponse, inline=False)
+                menu.add_field(name='**:file_folder: Category**', value=categoryResponse, inline=False)
+                menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+                menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+
+                await message.edit(embed=menu)
+
+                response = await ctx.send("Alrighty, I've set the specified **country** to the search parameters!")
+                await asyncio.sleep(3)
+                await response.delete()
+            else:
+                response = await ctx.send("Invalid country, try again. *(use ?newsCountries to see a list of supported countries)*")
+                await asyncio.sleep(3)
+                await response.delete()
+
+        elif str(reaction.emoji) == "📁":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me what **category** you'd like to sort articles by.")
+            userInput = await client.wait_for("message", check=lambda message : message.author == ctx.author) # ADD TIMEOUT
+            categoryCheck = await newsAPIClient.queryCategory(userInput.content)
+
+            if categoryCheck:
+                categoryResponse = userInput.content
+                menu = discord.Embed(
+                    title='**__News Headlines Search__**',
+                    description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                    color=discord.Colour.blue()
+                )
+
+                menu.add_field(name='**:earth_americas: Country**', value=countryResponse, inline=False)
+                menu.add_field(name='**:file_folder: Category**', value=categoryResponse, inline=False)
+                menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+                menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+
+                await message.edit(embed=menu)
+
+                response = await ctx.send("Alrighty, I've set the specified **category** to the search parameters!")
+                await asyncio.sleep(3)
+                await response.delete()
+            else:
+                response = await ctx.send("Invalid category, try again. *(use ?newsCategories to see a list of supported categories)*")
+                await asyncio.sleep(3)
+                await response.delete()
+
+        elif str(reaction.emoji) == "📰":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me what **source** you'd like to find articles by.")
+            userInput = await client.wait_for("message", check=lambda message : message.author == ctx.author) # ADD TIMEOUT
+            sourceCheck = await newsAPIClient.querySource(userInput.content)
+
+            if sourceCheck:
+                if "None" in sourcesResponse:
+                    sourcesResponse.remove("None")
+
+                sourcesResponse.append(userInput.content)
+                menu = discord.Embed(
+                    title='**__News Headlines Search__**',
+                    description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                    color=discord.Colour.blue()
+                )
+
+                menu.add_field(name='**:earth_americas: Country**', value=countryResponse, inline=False)
+                menu.add_field(name='**:file_folder: Category**', value=categoryResponse, inline=False)
+                menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+                menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+
+                await message.edit(embed=menu)
+
+                response = await ctx.send("Alrighty, I've set the specified **source** to the search parameters!")
+                await asyncio.sleep(3)
+                await response.delete()
+            else:
+                response = await ctx.send("Invalid source, try again. *(use ?newsSources to see a list of supported sources)*")
+                await asyncio.sleep(3)
+                await response.delete()
+
+        elif str(reaction.emoji) == "❓":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me a specific **phrase or any key-words** you'd like to search for in articles.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+
+            queryResponse = userInput.content
+            menu = discord.Embed(
+                title='**__News Headlines Search__**',
+                description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                color=discord.Colour.blue()
+            )
+
+            menu.add_field(name='**:earth_americas: Country**', value=countryResponse, inline=False)
+            menu.add_field(name='**:file_folder: Category**', value=categoryResponse, inline=False)
+            menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+            menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+
+            await message.edit(embed=menu)
+
+            response = await ctx.send("Alrighty, I've set the specified **query** to the search parameters!")
+            await asyncio.sleep(3)
+            await response.delete()
+
+        elif str(reaction.emoji) == "🔎":
+            await message.remove_reaction(reaction, user)
+            await message.delete()
+            message = await ctx.send("Searching...")
+            await asyncio.sleep(2)
+
+            if countryResponse == 'None':
+                countryResponse = ''
+            if categoryResponse == 'None':
+                categoryResponse = ''
+            if sourcesResponse == ['None']:
+                sourcesResponse = ''
+            if queryResponse == 'None':
+                queryResponse = ''
+
+            headlines = await newsAPIClient.getTopHeadlines(countryResponse, categoryResponse, ','.join(sourcesResponse), queryResponse)
+            articles = headlines['articles']
+            pages = len(articles)
+            curPage = 1
+
+            if articles:
+                article = articles[curPage - 1]
+                title = article['title']
+                source = article['source']['name']
+                publishedAt = article['publishedAt']
+                description = article['description']
+                url = article['url']
+                image = article['urlToImage']
+
+                embed = discord.Embed(
+                    title=f'{title}',
+                    description=f'{description}".',
+                    color=discord.Colour.blue()
+                )
+
+                embed.set_footer(text='data retrieved from: https://newsapi.org/')
+
+                if image:
+                    embed.set_image(url=image)
+
+                embed.add_field(name='Source', value=source, inline=False)
+                embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                embed.add_field(name='URL', value=url, inline=False)
+
+                await message.edit(embed=embed, content='')
+
+                await message.add_reaction("⬅")
+                await message.add_reaction("➡")
+                await message.add_reaction("❌")
+
+                while True:
+                    reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user: user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id) # waiting for a reaction to be added
+
+                    if str(reaction.emoji) == "➡" and curPage != pages:
+                        curPage += 1
+
+                        article = articles[curPage - 1]
+                        title = article['title']
+                        source = article['source']['name']
+                        publishedAt = article['publishedAt']
+                        description = article['description']
+                        url = article['url']
+                        image = article['urlToImage']
+
+                        embed = discord.Embed(
+                            title=f'{title}',
+                            description=f'{description}".',
+                            color=discord.Colour.blue()
+                        )
+
+                        embed.set_footer(text='data retrieved from: https://newsapi.org/')
+
+                        if image:
+                            embed.set_image(url=image)
+
+                        embed.add_field(name='Source', value=source, inline=False)
+                        embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                        embed.add_field(name='URL', value=url, inline=False)
+
+                        await message.edit(embed=embed)
+                        await message.remove_reaction(reaction, user)
+
+                    elif str(reaction.emoji) == "⬅" and curPage > 1:
+                        curPage -= 1
+
+                        article = articles[curPage - 1]
+                        title = article['title']
+                        source = article['source']['name']
+                        publishedAt = article['publishedAt']
+                        description = article['description']
+                        url = article['url']
+                        image = article['urlToImage']
+
+                        embed = discord.Embed(
+                            title=f'{title}',
+                            description=f'{description}".',
+                            color=discord.Colour.blue()
+                        )
+
+                        embed.set_footer(text='data retrieved from: https://newsapi.org/')
+                        embed.set_image(url=image)
+
+                        embed.add_field(name='Source', value=source, inline=False)
+                        embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                        embed.add_field(name='URL', value=url, inline=False)
+
+                        await message.edit(embed=embed)
+                        await message.remove_reaction(reaction, user)
+
+                    elif str(reaction.emoji) == "❌":
+                        await message.remove_reaction(reaction, user)
+                        await message.remove_reaction("⬅", client.user)
+                        await message.remove_reaction("➡", client.user)
+                        await message.remove_reaction("❌", client.user)
+                        # await message.delete()
+                        break
+
+                    else:
+                        await message.remove_reaction(reaction, user)
+                        # removes reactions if the user tries to go forward on the last page or
+                        # backwards on the first page
+            else:
+                embed = discord.Embed(
+                    title=f'News Sources',
+                    description='No sources could be provided...',
+                    color=discord.Colour.blue()
+                )
+
+                embed.add_field(name='No Data',
+                                value='No articles could be provided with this query, sorry!',
+                                inline=False)
+                await ctx.send(embed=embed)
+
+@client.command()
+async def newsSearch(ctx):
+    pass
+
+@client.command()
+async def newsCountries(ctx):
+    countryList = await newsAPIClient.getCountries()
+    countryNames = [f'{key} - :flag_{dict[key]}:' async for dict in aiter(countryList) async for key in aiter(dict.keys())] # retrieve all keys within the list of dictionaries
+    countries = [countryNames[x:x + 20] async for x in aiter(range(0, len(countryNames), 20))]
+    pages = len(countries)
+    curPage = 1
+
+    countryFormat = '\n'.join(countries[curPage - 1])
+    message = await ctx.send(f"**__LIST OF COUNTRIES__ (NEWS API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
+
+    await message.add_reaction("⬅")
+    await message.add_reaction("➡")
+    await message.add_reaction("❌")
+
+    while True:
+        reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user : user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id)
+        # waiting for a reaction to be added
+
+        if str(reaction.emoji) == "➡" and curPage != pages:
+            curPage += 1
+            countryFormat = '\n'.join(countries[curPage - 1])
+            await message.edit(
+                content=f"**__LIST OF COUNTRIES__ (NEWS API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
+            await message.remove_reaction(reaction, user)
+
+        elif str(reaction.emoji) == "⬅" and curPage > 1:
+            curPage -= 1
+            countryFormat = '\n'.join(countries[curPage - 1])
+            await message.edit(
+                content=f"**__LIST OF COUNTRIES__ (NEWS API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "❌":
@@ -464,7 +784,26 @@ async def newsSources(ctx):
 
 @client.command()
 async def newsLanguages(ctx):
-    pass
+    languageList = await newsAPIClient.getLanguages()
+    languageNames = [key async for dict in aiter(languageList) async for key in aiter(dict.keys())] # retrieve all keys within the list of dictionaries
+
+    languageFormat = '\n'.join(languageNames)
+
+    await ctx.send(f"**__LIST OF SUPPORTED LANGUAGES__ (NEWS API)**\n{languageFormat}")
+
+@client.command()
+async def newsCategories(ctx):
+    categoryList = await newsAPIClient.getCategories()
+    categoryFormat = '\n'.join(categoryList)
+
+    await ctx.send(f"**__LIST OF NEWS CATEGORIES__ (NEWS API)**\n{categoryFormat}")
+
+@client.command()
+async def newsSortList(ctx):
+    sortByList = await newsAPIClient.getSortBy()
+    sortByFormat = '\n'.join(sortByList)
+
+    await ctx.send(f"**__NEWS ARTICLES SORT__ (NEWS API)**\n{sortByFormat}")
 
 # https://stackoverflow.com/questions/61787520/i-want-to-make-a-multi-page-help-command-using-discord-py
 # https://stackoverflow.com/questions/9671224/split-a-python-list-into-other-sublists-i-e-smaller-lists

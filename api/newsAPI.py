@@ -47,6 +47,12 @@ class NewsAPI(APIHandler.APIHandler):
         countries = await self.database.find('NEWSAPI', 'miscellaneous', {'_id':'Countries'})
         return countries[0]['CountryList']
 
+    async def getCountryNames(self):
+        countryList = await self.getCountries()
+        countries = [key async for dict in aiter(countryList) async for key in aiter(dict.keys())]  # retrieve all keys within the list of dictionaries
+
+        return countries
+
     async def getSortBy(self):
         sortBy = await self.database.find('NEWSAPI', 'miscellaneous', {'_id':'SortBy'})
         return sortBy[0]['SortByList']
@@ -55,6 +61,14 @@ class NewsAPI(APIHandler.APIHandler):
         categoryList = await self.getCategories()
 
         if categoryName in categoryList:
+            return True
+        else:
+            return False
+
+    async def queryCountry(self, countryName):
+        countries = await self.getCountryNames()
+
+        if countryName in countries:
             return True
         else:
             return False
@@ -190,6 +204,6 @@ class NewsAPI(APIHandler.APIHandler):
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(NewsAPI().getEverything('COVID-19'))
+test = loop.run_until_complete(NewsAPI().getSources(category='general', country='United Kingdom'))
 print(test)
 '''
