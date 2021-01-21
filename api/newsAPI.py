@@ -148,7 +148,7 @@ class NewsAPI(APIHandler.APIHandler):
                 raise ValueError('You cannot specify a country or category if you specify a source')
 
         if not country and not category and not sources and not query:
-            raise TypeError('You need at least one of the required parameters! [country, category, sources, query]')
+            raise ValueError('You need at least one of the required parameters! [country, category, sources, query]')
 
         articles = await self.getAPI('https://newsapi.org/v2/top-headlines?', {**filter, 'pageSize':100}, {'X-Api-Key':self.apiKey})
         return articles
@@ -195,7 +195,7 @@ class NewsAPI(APIHandler.APIHandler):
                 raise ValueError(f'Invalid category provided ({sortBy}), can only sort articles by [relevancy, popularity, publishedAt]')
 
         if not query and not titleSearch and not sources and not domains:
-            raise TypeError('You need at least one of the required parameters! [query, titleSearch, sources, domains]')
+            raise ValueError('You need at least one of the required parameters! [query, titleSearch, sources, domains]')
 
         articles = await self.getAPI('https://newsapi.org/v2/everything?', {**filter, 'pageSize':100}, {'X-Api-Key':self.apiKey})
         return articles
@@ -204,6 +204,6 @@ class NewsAPI(APIHandler.APIHandler):
 #TESTING ASYNC FUNCTIONS:
 
 loop = asyncio.get_event_loop()
-test = loop.run_until_complete(NewsAPI().getSources(category='general', country='United Kingdom'))
+test = loop.run_until_complete(NewsAPI().getLanguages())
 print(test)
 '''

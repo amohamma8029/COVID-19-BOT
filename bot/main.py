@@ -1,11 +1,8 @@
 import discord
 import os
-from discord import Embed, Emoji
+from discord import Embed
 from discord.ext import commands
 from typing import Union
-import matplotlib
-from matplotlib import pyplot as plt
-import numpy as np
 from api import covidAPI, newsAPI
 from utils.asyncOperations import *
 
@@ -56,7 +53,6 @@ async def covidCountries(ctx):
             await message.remove_reaction("⬅", client.user)
             await message.remove_reaction("➡", client.user)
             await message.remove_reaction("❌", client.user)
-            # await message.delete()
             break
 
         else:
@@ -243,7 +239,6 @@ async def getTimeline(ctx, *args):
             await message.remove_reaction("⬅", client.user)
             await message.remove_reaction("➡", client.user)
             await message.remove_reaction("❌", client.user)
-            # await message.delete()
             break
 
         else:
@@ -447,7 +442,6 @@ async def newsSources(ctx):
             await message.remove_reaction("⬅", client.user)
             await message.remove_reaction("➡", client.user)
             await message.remove_reaction("❌", client.user)
-            # await message.delete()
             break
 
         else:
@@ -508,11 +502,11 @@ async def newsHeadlines(ctx):
                 await message.edit(embed=menu)
 
                 response = await ctx.send("Alrighty, I've set the specified **country** to the search parameters!")
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
                 await response.delete()
             else:
                 response = await ctx.send("Invalid country, try again. *(use ?newsCountries to see a list of supported countries)*")
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
                 await response.delete()
 
         elif str(reaction.emoji) == "📁":
@@ -537,11 +531,11 @@ async def newsHeadlines(ctx):
                 await message.edit(embed=menu)
 
                 response = await ctx.send("Alrighty, I've set the specified **category** to the search parameters!")
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
                 await response.delete()
             else:
                 response = await ctx.send("Invalid category, try again. *(use ?newsCategories to see a list of supported categories)*")
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
                 await response.delete()
 
         elif str(reaction.emoji) == "📰":
@@ -569,11 +563,11 @@ async def newsHeadlines(ctx):
                 await message.edit(embed=menu)
 
                 response = await ctx.send("Alrighty, I've set the specified **source** to the search parameters!")
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
                 await response.delete()
             else:
                 response = await ctx.send("Invalid source, try again. *(use ?newsSources to see a list of supported sources)*")
-                await asyncio.sleep(3)
+                await asyncio.sleep(2)
                 await response.delete()
 
         elif str(reaction.emoji) == "❓":
@@ -596,7 +590,7 @@ async def newsHeadlines(ctx):
             await message.edit(embed=menu)
 
             response = await ctx.send("Alrighty, I've set the specified **query** to the search parameters!")
-            await asyncio.sleep(3)
+            await asyncio.sleep(2)
             await response.delete()
 
         elif str(reaction.emoji) == "🔎":
@@ -615,126 +609,599 @@ async def newsHeadlines(ctx):
                 queryResponse = ''
 
             headlines = await newsAPIClient.getTopHeadlines(countryResponse, categoryResponse, ','.join(sourcesResponse), queryResponse)
-            articles = headlines['articles']
-            pages = len(articles)
-            curPage = 1
 
-            if articles:
-                article = articles[curPage - 1]
-                title = article['title']
-                source = article['source']['name']
-                publishedAt = article['publishedAt']
-                description = article['description']
-                url = article['url']
-                image = article['urlToImage']
+            if headlines in [400, 401, 429, 500]:
+                await ctx.send("Whoops, looks like something went wrong. Please try again at a later time!")
+            else:
+                articles = headlines['articles']
+                pages = len(articles)
+                curPage = 1
 
-                embed = discord.Embed(
-                    title=f'{title}',
-                    description=f'{description}".',
-                    color=discord.Colour.blue()
-                )
+                if articles:
+                    article = articles[curPage - 1]
+                    title = article['title']
+                    source = article['source']['name']
+                    publishedAt = article['publishedAt']
+                    description = article['description']
+                    url = article['url']
+                    image = article['urlToImage']
 
-                embed.set_footer(text='data retrieved from: https://newsapi.org/')
+                    embed = discord.Embed(
+                        title=f'{title}',
+                        description=f'{description}".',
+                        color=discord.Colour.blue()
+                    )
 
-                if image:
-                    embed.set_image(url=image)
+                    embed.set_footer(text='data retrieved from: https://newsapi.org/')
 
-                embed.add_field(name='Source', value=source, inline=False)
-                embed.add_field(name='Publish Date', value=publishedAt, inline=False)
-                embed.add_field(name='URL', value=url, inline=False)
-
-                await message.edit(embed=embed, content='')
-
-                await message.add_reaction("⬅")
-                await message.add_reaction("➡")
-                await message.add_reaction("❌")
-
-                while True:
-                    reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user: user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id) # waiting for a reaction to be added
-
-                    if str(reaction.emoji) == "➡" and curPage != pages:
-                        curPage += 1
-
-                        article = articles[curPage - 1]
-                        title = article['title']
-                        source = article['source']['name']
-                        publishedAt = article['publishedAt']
-                        description = article['description']
-                        url = article['url']
-                        image = article['urlToImage']
-
-                        embed = discord.Embed(
-                            title=f'{title}',
-                            description=f'{description}".',
-                            color=discord.Colour.blue()
-                        )
-
-                        embed.set_footer(text='data retrieved from: https://newsapi.org/')
-
-                        if image:
-                            embed.set_image(url=image)
-
-                        embed.add_field(name='Source', value=source, inline=False)
-                        embed.add_field(name='Publish Date', value=publishedAt, inline=False)
-                        embed.add_field(name='URL', value=url, inline=False)
-
-                        await message.edit(embed=embed)
-                        await message.remove_reaction(reaction, user)
-
-                    elif str(reaction.emoji) == "⬅" and curPage > 1:
-                        curPage -= 1
-
-                        article = articles[curPage - 1]
-                        title = article['title']
-                        source = article['source']['name']
-                        publishedAt = article['publishedAt']
-                        description = article['description']
-                        url = article['url']
-                        image = article['urlToImage']
-
-                        embed = discord.Embed(
-                            title=f'{title}',
-                            description=f'{description}".',
-                            color=discord.Colour.blue()
-                        )
-
-                        embed.set_footer(text='data retrieved from: https://newsapi.org/')
+                    if image:
                         embed.set_image(url=image)
 
-                        embed.add_field(name='Source', value=source, inline=False)
-                        embed.add_field(name='Publish Date', value=publishedAt, inline=False)
-                        embed.add_field(name='URL', value=url, inline=False)
+                    embed.add_field(name='Source', value=source, inline=False)
+                    embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                    embed.add_field(name='URL', value=url, inline=False)
 
-                        await message.edit(embed=embed)
-                        await message.remove_reaction(reaction, user)
+                    await message.edit(embed=embed, content=f'**Page [``{curPage}/{pages}``]**')
 
-                    elif str(reaction.emoji) == "❌":
-                        await message.remove_reaction(reaction, user)
-                        await message.remove_reaction("⬅", client.user)
-                        await message.remove_reaction("➡", client.user)
-                        await message.remove_reaction("❌", client.user)
-                        # await message.delete()
-                        break
+                    await message.add_reaction("⬅")
+                    await message.add_reaction("➡")
+                    await message.add_reaction("❌")
 
-                    else:
-                        await message.remove_reaction(reaction, user)
-                        # removes reactions if the user tries to go forward on the last page or
-                        # backwards on the first page
-            else:
-                embed = discord.Embed(
-                    title=f'News Sources',
-                    description='No sources could be provided...',
-                    color=discord.Colour.blue()
-                )
+                    while True:
+                        reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user: user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id) # waiting for a reaction to be added
 
-                embed.add_field(name='No Data',
-                                value='No articles could be provided with this query, sorry!',
-                                inline=False)
-                await ctx.send(embed=embed)
+                        if str(reaction.emoji) == "➡" and curPage != pages:
+                            curPage += 1
+
+                            article = articles[curPage - 1]
+                            title = article['title']
+                            source = article['source']['name']
+                            publishedAt = article['publishedAt']
+                            description = article['description']
+                            url = article['url']
+                            image = article['urlToImage']
+
+                            embed = discord.Embed(
+                                title=f'{title}',
+                                description=f'{description}".',
+                                color=discord.Colour.blue()
+                            )
+
+                            embed.set_footer(text='data retrieved from: https://newsapi.org/')
+
+                            if image:
+                                embed.set_image(url=image)
+
+                            embed.add_field(name='Source', value=source, inline=False)
+                            embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                            embed.add_field(name='URL', value=url, inline=False)
+
+                            await message.edit(embed=embed, content=f'**Page [``{curPage}/{pages}``]**')
+                            await message.remove_reaction(reaction, user)
+
+                        elif str(reaction.emoji) == "⬅" and curPage > 1:
+                            curPage -= 1
+
+                            article = articles[curPage - 1]
+                            title = article['title']
+                            source = article['source']['name']
+                            publishedAt = article['publishedAt']
+                            description = article['description']
+                            url = article['url']
+                            image = article['urlToImage']
+
+                            embed = discord.Embed(
+                                title=f'{title}',
+                                description=f'{description}".',
+                                color=discord.Colour.blue()
+                            )
+
+                            embed.set_footer(text='data retrieved from: https://newsapi.org/')
+                            embed.set_image(url=image)
+
+                            embed.add_field(name='Source', value=source, inline=False)
+                            embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                            embed.add_field(name='URL', value=url, inline=False)
+
+                            await message.edit(embed=embed, content=f'**Page [``{curPage}/{pages}``]**')
+                            await message.remove_reaction(reaction, user)
+
+                        elif str(reaction.emoji) == "❌":
+                            await message.remove_reaction(reaction, user)
+                            await message.remove_reaction("⬅", client.user)
+                            await message.remove_reaction("➡", client.user)
+                            await message.remove_reaction("❌", client.user)
+                            break
+
+                        else:
+                            await message.remove_reaction(reaction, user)
+                            # removes reactions if the user tries to go forward on the last page or
+                            # backwards on the first page
+                else:
+                    embed = discord.Embed(
+                        title=f'News Sources',
+                        description='No sources could be provided...',
+                        color=discord.Colour.blue()
+                    )
+
+                    embed.add_field(name='No Data', value='No articles could be provided with this query, sorry!', inline=False)
+
+                    await ctx.send(embed=embed)
 
 @client.command()
 async def newsSearch(ctx):
-    pass
+    queryResponse = 'None'
+    titleResponse = 'None'
+    sourcesResponse = ['None']
+    domainsResponse = ['None']
+    exDomainsResponse = ['None']
+    fromDateResponse = 'None'
+    toDateResponse = 'None'
+    languageResponse = 'None'
+    sortByResponse = 'None'
+
+    menu = discord.Embed(
+        title='**__News Search (Everything)__**',
+        description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+        color=discord.Colour.blue()
+    )
+
+    menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+    menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+    menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+    menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+    menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+    menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+    menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+    menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+    menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+    message = await ctx.send(embed=menu)
+
+    await message.add_reaction("❓")
+    await message.add_reaction("📌")
+    await message.add_reaction("📰")
+    await message.add_reaction("🌐")
+    await message.add_reaction("🚫")
+    await message.add_reaction("⏪")
+    await message.add_reaction("⏩")
+    await message.add_reaction("🗣️")
+    await message.add_reaction("🗂️")
+    await message.add_reaction("🔎")
+
+    while True:
+        reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user : user == ctx.author and str(reaction.emoji) in ["❓","📌","📰","🌐","🚫","⏪","⏩","🗣️","🗂️","🔎"] and reaction.message.id == message.id)
+
+        if str(reaction.emoji) == "❓":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me a specific **phrase or any key-words** you'd like to search for in articles.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+
+            queryResponse = userInput.content
+            menu = discord.Embed(
+                title='**__News Search (Everything)__**',
+                description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                color=discord.Colour.blue()
+            )
+
+            menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+            menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+            menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+            menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+            menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+            menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+            menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+            menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+            menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+            await message.edit(embed=menu)
+
+            response = await ctx.send("Alrighty, I've set the specified **query** to the search parameters!")
+            await asyncio.sleep(2)
+            await response.delete()
+
+        elif str(reaction.emoji) == "📌":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me a specific **phrase or any key-words** you'd like to search for within article **titles**.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+
+            titleResponse = userInput.content
+            menu = discord.Embed(
+                title='**__News Search (Everything)__**',
+                description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                color=discord.Colour.blue()
+            )
+
+            menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+            menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+            menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+            menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+            menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+            menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+            menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+            menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+            menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+            await message.edit(embed=menu)
+
+            response = await ctx.send("Alrighty, I've set the specified **query** to the search parameters!")
+            await asyncio.sleep(2)
+            await response.delete()
+
+        elif str(reaction.emoji) == "📰":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me what **source** you'd like to find articles by.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+            sourceCheck = await newsAPIClient.querySource(userInput.content)
+
+            if sourceCheck:
+                if "None" in sourcesResponse:
+                    sourcesResponse.remove("None")
+
+                sourcesResponse.append(userInput.content)
+                menu = discord.Embed(
+                    title='**__News Search (Everything)__**',
+                    description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                    color=discord.Colour.blue()
+                )
+
+                menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+                menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+                menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+                menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+                menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+                menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+                menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+                menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+                menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+                await message.edit(embed=menu)
+
+                response = await ctx.send("Alrighty, I've set the specified **source** to the search parameters!")
+                await asyncio.sleep(2)
+                await response.delete()
+            else:
+                response = await ctx.send("Invalid source, try again. *(use ?newsSources to see a list of supported sources)*")
+                await asyncio.sleep(2)
+                await response.delete()
+
+        elif str(reaction.emoji) == "🌐":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me what **domains** you'd like me to include articles from.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+
+            if "None" in domainsResponse:
+                domainsResponse.remove("None")
+
+            domainsResponse.append(userInput.content)
+
+            menu = discord.Embed(
+                title='**__News Search (Everything)__**',
+                description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                color=discord.Colour.blue()
+            )
+
+            menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+            menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+            menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+            menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+            menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+            menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+            menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+            menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+            menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+            await message.edit(embed=menu)
+
+            response = await ctx.send("Alrighty, I've set the specified **domain** to the search parameters!")
+            await asyncio.sleep(2)
+            await response.delete()
+
+        elif str(reaction.emoji) == "🚫":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me what **domains** you'd like me to **NOT** include articles from.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+
+            if "None" in exDomainsResponse:
+                exDomainsResponse.remove("None")
+
+            exDomainsResponse.append(userInput.content)
+
+            menu = discord.Embed(
+                title='**__News Search (Everything)__**',
+                description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                color=discord.Colour.blue()
+            )
+
+            menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+            menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+            menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+            menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+            menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+            menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+            menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+            menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+            menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+            await message.edit(embed=menu)
+
+            response = await ctx.send("Alrighty, I will **not** include the specified **domain** when searching for articles!")
+            await asyncio.sleep(2)
+            await response.delete()
+
+        if str(reaction.emoji) == "⏪":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me the **oldest** date you want me to search articles from.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+
+            fromDateResponse = userInput.content
+
+            menu = discord.Embed(
+                title='**__News Search (Everything)__**',
+                description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                color=discord.Colour.blue()
+            )
+
+            menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+            menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+            menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+            menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+            menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+            menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+            menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+            menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+            menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+            await message.edit(embed=menu)
+
+            response = await ctx.send("Alrighty, I've set the specified **date** to the search parameters!")
+            await asyncio.sleep(2)
+            await response.delete()
+
+        if str(reaction.emoji) == "⏩":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me the **newest** date you want me to search articles from.")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+
+            toDateResponse = userInput.content
+
+            menu = discord.Embed(
+                title='**__News Search (Everything)__**',
+                description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                color=discord.Colour.blue()
+            )
+
+            menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+            menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+            menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+            menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+            menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+            menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+            menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+            menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+            menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+            await message.edit(embed=menu)
+
+            response = await ctx.send("Alrighty, I've set the specified **date** to the search parameters!")
+            await asyncio.sleep(2)
+            await response.delete()
+
+        if str(reaction.emoji) == "🗣️":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me what **language** you'd like me to search articles in")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+            languageCheck = await newsAPIClient.getLanguageCode(userInput.content)
+
+            if languageCheck:
+                languageResponse = userInput.content
+
+                menu = discord.Embed(
+                    title='**__News Search (Everything)__**',
+                    description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                    color=discord.Colour.blue()
+                )
+
+                menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+                menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+                menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+                menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+                menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+                menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+                menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+                menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+                menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+                await message.edit(embed=menu)
+
+                response = await ctx.send("Alrighty, I've set the specified **language** to the search parameters!")
+                await asyncio.sleep(2)
+                await response.delete()
+            else:
+                response = await ctx.send("Invalid language, please try again. *(use ?newsLanguages to see a list of supported languages)*")
+                await asyncio.sleep(2)
+                await response.delete()
+
+        if str(reaction.emoji) == "🗂️":
+            await message.remove_reaction(reaction, user)
+            await ctx.send("Please tell me you'd like me to **sort** any found articles")
+            userInput = await client.wait_for("message", check=lambda message: message.author == ctx.author)  # ADD TIMEOUT
+            sortByList = await newsAPIClient.getSortBy()
+
+            if userInput.content in sortByList:
+                sortByResponse = userInput.content
+
+                menu = discord.Embed(
+                    title='**__News Search (Everything)__**',
+                    description='Press the emojis to specify the parameters of your search (press :mag_right: to search)',
+                    color=discord.Colour.blue()
+                )
+
+                menu.add_field(name='**:question: Query**', value=queryResponse, inline=False)
+                menu.add_field(name='**:pushpin: Title Search**', value=titleResponse, inline=False)
+                menu.add_field(name='**:newspaper: Sources**', value='\n'.join(sourcesResponse), inline=False)
+                menu.add_field(name='**:globe_with_meridians: Domains**', value='\n'.join(domainsResponse), inline=False)
+                menu.add_field(name='**:no_entry_sign: Exclude Domains**', value='\n'.join(exDomainsResponse), inline=False)
+                menu.add_field(name='**:rewind: From (date)**', value=fromDateResponse, inline=False)
+                menu.add_field(name='**:fast_forward: To (date)**', value=toDateResponse, inline=False)
+                menu.add_field(name='**:speaking_head: Language**', value=languageResponse, inline=False)
+                menu.add_field(name='**:dividers: Sort By**', value=sortByResponse, inline=False)
+
+                await message.edit(embed=menu)
+
+                response = await ctx.send(f"Alrighty, I will **sort** articles by {sortByResponse}!")
+                await asyncio.sleep(2)
+                await response.delete()
+            else:
+                response = await ctx.send("Invalid method of **sorting**, please try again. *(use ?newsSortList to see how I can sort articles)*")
+                await asyncio.sleep(2)
+                await response.delete()
+
+        elif str(reaction.emoji) == "🔎":
+            await message.remove_reaction(reaction, user)
+            await message.delete()
+            message = await ctx.send("Searching...")
+            await asyncio.sleep(2)
+
+            if queryResponse == 'None':
+                queryResponse = ''
+            if titleResponse == 'None':
+                titleResponse = ''
+            if sourcesResponse == ['None']:
+                sourcesResponse = ''
+            if domainsResponse == ['None']:
+                domainsResponse = ''
+            if exDomainsResponse == ['None']:
+                exDomainsResponse = ''
+            if fromDateResponse == 'None':
+                fromDateResponse = ''
+            if toDateResponse == 'None':
+                toDateResponse = ''
+            if languageResponse == 'None':
+                languageResponse = ''
+            if sortByResponse == 'None':
+                sortByResponse = ''
+
+            newsArticles = await newsAPIClient.getEverything(queryResponse, titleResponse, ','.join(sourcesResponse), ','.join(domainsResponse), ','.join(exDomainsResponse), fromDateResponse, toDateResponse, languageResponse, sortByResponse)
+
+            if newsArticles in [400, 401, 429, 500]:
+                await ctx.send("Whoops, looks like something went wrong. Please try again at a later time!")
+            else:
+                articles = newsArticles['articles']
+                pages = len(articles)
+                curPage = 1
+
+                if articles:
+                    article = articles[curPage - 1]
+                    title = article['title']
+                    source = article['source']['name']
+                    publishedAt = article['publishedAt']
+                    description = article['description']
+                    url = article['url']
+                    image = article['urlToImage']
+
+                    embed = discord.Embed(
+                        title=f'{title}',
+                        description=f'{description}".',
+                        color=discord.Colour.blue()
+                    )
+
+                    embed.set_footer(text='data retrieved from: https://newsapi.org/')
+
+                    if image:
+                        embed.set_image(url=image)
+
+                    embed.add_field(name='Source', value=source, inline=False)
+                    embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                    embed.add_field(name='URL', value=url, inline=False)
+
+                    await message.edit(embed=embed, content=f'**Page [``{curPage}/{pages}``]**')
+
+                    await message.add_reaction("⬅")
+                    await message.add_reaction("➡")
+                    await message.add_reaction("❌")
+
+                    while True:
+                        reaction, user = await client.wait_for("reaction_add", check=lambda reaction, user: user == ctx.author and str(reaction.emoji) in ["⬅", "➡", "❌"] and reaction.message.id == message.id) # waiting for a reaction to be added
+
+                        if str(reaction.emoji) == "➡" and curPage != pages:
+                            curPage += 1
+
+                            article = articles[curPage - 1]
+                            title = article['title']
+                            source = article['source']['name']
+                            publishedAt = article['publishedAt']
+                            description = article['description']
+                            url = article['url']
+                            image = article['urlToImage']
+
+                            embed = discord.Embed(
+                                title=f'{title}',
+                                description=f'{description}".',
+                                color=discord.Colour.blue()
+                            )
+
+                            embed.set_footer(text='data retrieved from: https://newsapi.org/')
+
+                            if image:
+                                embed.set_image(url=image)
+
+                            embed.add_field(name='Source', value=source, inline=False)
+                            embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                            embed.add_field(name='URL', value=url, inline=False)
+
+                            await message.edit(embed=embed, content=f'**Page [``{curPage}/{pages}``]**')
+                            await message.remove_reaction(reaction, user)
+
+                        elif str(reaction.emoji) == "⬅" and curPage > 1:
+                            curPage -= 1
+
+                            article = articles[curPage - 1]
+                            title = article['title']
+                            source = article['source']['name']
+                            publishedAt = article['publishedAt']
+                            description = article['description']
+                            url = article['url']
+                            image = article['urlToImage']
+
+                            embed = discord.Embed(
+                                title=f'{title}',
+                                description=f'{description}".',
+                                color=discord.Colour.blue()
+                            )
+
+                            embed.set_footer(text='data retrieved from: https://newsapi.org/')
+                            embed.set_image(url=image)
+
+                            embed.add_field(name='Source', value=source, inline=False)
+                            embed.add_field(name='Publish Date', value=publishedAt, inline=False)
+                            embed.add_field(name='URL', value=url, inline=False)
+
+                            await message.edit(embed=embed, content=f'**Page [``{curPage}/{pages}``]**')
+                            await message.remove_reaction(reaction, user)
+
+                        elif str(reaction.emoji) == "❌":
+                            await message.remove_reaction(reaction, user)
+                            await message.remove_reaction("⬅", client.user)
+                            await message.remove_reaction("➡", client.user)
+                            await message.remove_reaction("❌", client.user)
+                            break
+
+                        else:
+                            await message.remove_reaction(reaction, user)
+                            # removes reactions if the user tries to go forward on the last page or
+                            # backwards on the first page
+                else:
+                    embed = discord.Embed(
+                        title=f'News Sources',
+                        description='No sources could be provided...',
+                        color=discord.Colour.blue()
+                    )
+
+                    embed.add_field(name='No Data', value='No articles could be provided with this query, sorry!', inline=False)
+
+                    await ctx.send(embed=embed)
+
 
 @client.command()
 async def newsCountries(ctx):
@@ -758,15 +1225,13 @@ async def newsCountries(ctx):
         if str(reaction.emoji) == "➡" and curPage != pages:
             curPage += 1
             countryFormat = '\n'.join(countries[curPage - 1])
-            await message.edit(
-                content=f"**__LIST OF COUNTRIES__ (NEWS API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
+            await message.edit(content=f"**__LIST OF COUNTRIES__ (NEWS API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "⬅" and curPage > 1:
             curPage -= 1
             countryFormat = '\n'.join(countries[curPage - 1])
-            await message.edit(
-                content=f"**__LIST OF COUNTRIES__ (NEWS API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
+            await message.edit(content=f"**__LIST OF COUNTRIES__ (NEWS API) | Page [`{curPage}/{pages}`]**\n{countryFormat}")
             await message.remove_reaction(reaction, user)
 
         elif str(reaction.emoji) == "❌":
@@ -774,7 +1239,6 @@ async def newsCountries(ctx):
             await message.remove_reaction("⬅", client.user)
             await message.remove_reaction("➡", client.user)
             await message.remove_reaction("❌", client.user)
-            # await message.delete()
             break
 
         else:
@@ -805,19 +1269,12 @@ async def newsSortList(ctx):
 
     await ctx.send(f"**__NEWS ARTICLES SORT__ (NEWS API)**\n{sortByFormat}")
 
-# https://stackoverflow.com/questions/61787520/i-want-to-make-a-multi-page-help-command-using-discord-py
-# https://stackoverflow.com/questions/9671224/split-a-python-list-into-other-sublists-i-e-smaller-lists
+@newsSearch.error
+async def newsSearch_error(ctx, error):
+    await ctx.send(error)
 
-'''
-@client.command()
-async def plot_test(ctx, *args):
-    x = args
-    image = discord.File("test.png")
-    plt.bar(np.arange(len(x)), x)
-    plt.savefig("test.png")
-    plt.close()
-    await ctx.send(file=image)
-    //os.remove("test.png")
-'''
+@newsHeadlines.error
+async def newsHeadlines_error(ctx, error):
+    await ctx.send(error)
 
 client.run('NzgzNzcwNDIxMjQwOTIyMTUz.X8flFg.Gp2Wo7BMw7mB5EtfiUI0OFbPAgI')
