@@ -7,13 +7,9 @@ from utils.asyncOperations import *
 from datetime import datetime
 from matplotlib import pyplot as plt
 
-# TODO: Add examples in parameters for methods
-# TODO: Add database functions to this
-# TODO: Add more explnatation to the code as single comments (ex. #this line does this)
-
 class CovidAPI(APIHandler.APIHandler):
-    """
-    A class to format and handle specific requests to the COVID-19 API. Inherits from APIhandler class.
+    '''
+    A class to format and handle specific requests to the COVID-19 API. Inherits from the base APIhandler class.
 
     ...
 
@@ -27,24 +23,39 @@ class CovidAPI(APIHandler.APIHandler):
 
     Methods
     -------
-    getCountries():
-        returns a list of available countries in a dictionary format with the country code.
-    """
+    getCountries()
+        Returns a list of available countries in a dictionary format with the country code
+
+    getCountryCode(country)
+        Returns the country code of a specific country as a string
+
+    getCountryStats(country)
+        Returns the specific statistics of a country
+
+    getCountryTimeline(country)
+        Returns the timeline of cases within a given country
+
+    queryDate(country, date)
+        Returns the statistics given a certain date
+
+    getDateGraph(country, date, graphType = 'bar')
+        Generates a graph that displays the statistics of a certain date, given a country
+
+    getTimelineGraph(country, statistic, graphType = 'line')
+        Generates a graph that displays the timeline of a certain statistic overtime given a country and graph type
+    '''
+
     def __init__(self):
-        """
+        '''
         Parameters
         ----------
-        baseURL : str
-            the base link in the form of a string that will be used to access the data
+        ...
+        '''
 
-        payload : dict
-            a dictionary of strings that lets you pass on specific arguments into the link (empty by default)
-
-        """
-        super().__init__()
+        super().__init__() # inherit from parent class
 
     async def getCountries(self):
-        """Returns a list of available countries in a dictionary format with the country code
+        '''Returns a list of available countries in a dictionary format with the country code.
 
         Parameters
         ----------
@@ -54,27 +65,38 @@ class CovidAPI(APIHandler.APIHandler):
         -------
         list
             list of all available countries as dictionaries with the name and country code
-        """
-        api = await self.getAPI('https://corona-api.com/countries')
-        data = api['data']
-        countries = [{'name':data[i]['name'],'code':data[i]['code']} async for i in aiter(range(len(data)))]
+
+        Raises
+        ------
+        ...
+        '''
+
+        api = await self.getAPI('https://corona-api.com/countries') # grabs api
+        data = api['data'] # gets the data
+        countries = [{'name':data[i]['name'],'code':data[i]['code']} async for i in aiter(range(len(data)))] # takes the name and country code of each country and puts it in a list
         return countries
 
     async def getCountryCode(self, country):
-        """Returns the country code of a specific country as a string
+        '''Returns the country code of a specific country as a string.
 
         Parameters
         ----------
         country : str
-            the name of the country
+            the name of the country (ex. Canada, USA, Japan)
 
         Returns
         -------
         str
             the country code of the given country a two character string
-        """
 
-        countryList = await self.getCountries()
+        Raises
+        ------
+        ...
+        '''
+
+        countryList = await self.getCountries() # gets the list of countries
+
+        # checks if the country paramter matches with a valid country, if it does it returns the code. If not, it returns false
         async for c in aiter(countryList):
             if c['name'] == country:
                 return c['code']
@@ -82,35 +104,45 @@ class CovidAPI(APIHandler.APIHandler):
             return False
 
     async def getCountryStats(self, country):
-        """Returns the specific statistics of a country
+        '''Returns the specific statistics of a country.
 
         Parameters
         ----------
         country : str
-            the name of the country
+            the name of the country (ex. Canada, USA, Japan)
 
         Returns
         -------
         dict
             dictionaries containing all the data including coordinates, name, country code, latest statistics, and timeline
-        """
-        code = await self.getCountryCode(country)
-        data = await self.getAPI(f'http://corona-api.com/countries/{code}')
-        return  data['data']
+
+        Raises
+        ------
+        ...
+        '''
+        code = await self.getCountryCode(country) # gets the code of the country
+        data = await self.getAPI(f'http://corona-api.com/countries/{code}') # gets the country's stats with the code
+        return  data['data'] # data returned
 
     async def getCountryTimeline(self, country):
-        """Returns the timeline of cases within a given country
+        '''Returns the timeline of cases within a given country.
 
         Parameters
         ----------
         country : str
-            the name of the country, if 'global' is inputted instead of a country name it will grab the global timeline instead
+            the name of the country, if 'global' is inputted instead of a country name it will grab the global timeline instead (ex. Canada, USA, Japan)
 
         Returns
         -------
         list
             a list of dictionaries containing data for cases in previous dates
-        """
+
+        Raises
+        ------
+        ...
+        '''
+
+        # grabs the stats of the country, but if 'global' is input as the country name, it will grab the global timeline instead
         if country.lower() != 'global':
             stats = await self.getCountryStats(country)
             return stats['timeline']
@@ -119,12 +151,12 @@ class CovidAPI(APIHandler.APIHandler):
             return stats['data']
 
     async def queryDate(self, country, date):
-        """Returns the statistics given a certain date
+        '''Returns the statistics given a certain date.
 
         Paramters
         ---------
         country : str
-            the name of the country
+            the name of the country (ex. Canada, USA, Japan)
 
         date : str
             the date to be queried (ex. August 29th 2020)
@@ -133,10 +165,16 @@ class CovidAPI(APIHandler.APIHandler):
         -------
         dict
             a dictionary containing all the statistics for that given date
-        """
-        targetDate = datetime.strptime(f'{date}', '%B %d %Y').date()
-        timeline = await self.getCountryTimeline(country)
 
+        Raises
+        ------
+        ...
+        '''
+
+        targetDate = datetime.strptime(f'{date}', '%B %d %Y').date() # formats the date
+        timeline = await self.getCountryTimeline(country) # grabs country timeline
+
+        # checks if the date provided matches a date on the timeline, if not, it will return false
         async for day in aiter(timeline):
             if str(targetDate) in day['date']:
                 return day
@@ -144,20 +182,33 @@ class CovidAPI(APIHandler.APIHandler):
             return False
 
     async def getDateGraph(self, country, date, graphType = 'bar'):
-        """Generates a graph that displays the statistics of a certain date, given a country
+        '''Generates a graph that displays the statistics of a certain date, given a country.
 
         Parameters
         ----------
         country : str
-            name of the country, if 'global' is inputted instead of a country name it will grab the global timeline instead
+            name of the country, if 'global' is inputted instead of a country name it will grab the global timeline instead (ex. Canada, USA, Japan)
 
         date : str
             the date to be queried (ex. August 29th 2020)
 
         graphType : str
             type of graph, can choose from a bar graph (default) and pie chart
-        """
+
+        Returns
+        -------
+        str/bool
+            a string saying that a graph has been created, or returns false
+
+        Raises
+        ------
+        ValueError
+            if the graphType provided is incorrect.
+        '''
+
         data = await self.queryDate(country, date) #grabs data for that date
+
+        # if that date exists it will graph the data, if not, it will return false
         if data:
             stats = [data['deaths'], data['confirmed'], data['recovered'], data['new_confirmed'], data['new_recovered'], data['new_deaths'], data['active']] #puts the statistics in an array
 
@@ -180,7 +231,7 @@ class CovidAPI(APIHandler.APIHandler):
                 plt.axis('equal') # equal aspect ratio ensures that pie is drawn as a circle.
                 plt.title(f'Statistics for {country} on {date}')
             else:
-                raise ValueError('Invalid graph type.')
+                raise ValueError('Invalid graph type. Can only make a bar graph or pie chart.') # raises an error if incorrect graphType is provided
 
             plt.savefig('dateGraph.png', bbox_inches='tight') # saves graph as a file
             plt.close() # closes the graph
@@ -190,21 +241,33 @@ class CovidAPI(APIHandler.APIHandler):
             return False
 
     async def getTimelineGraph(self, country, statistic, graphType = 'line'):
-        """Generates a graph that displays the timeline of a certain statistic overtime given a country and graph type
+        '''Generates a graph that displays the timeline of a certain statistic overtime given a country and graph type.
 
         Parameters
         ----------
         country : str
-            name of the country, if 'global' is inputted instead of a country name it will grab the global timeline instead
+            name of the country, if 'global' is inputted instead of a country name it will grab the global timeline instead (ex. Canada, USA, Japan)
 
         statistic : str
             the name of the statistic, can choose from deaths, confirmed, recovered, active, new_confirmed, new_recovered, new_deaths
 
         graphType : str
             type of graph, can choose from a line (default value), bar, and scatter plot
-        """
+
+        Returns
+        -------
+        string/bool
+            a string saying that a graph has been created, or returns false
+
+        Raises
+        ------
+        ValueError
+            if the graphType provided is incorrect.
+        '''
+
         countryTimeline = await self.getCountryTimeline(country) # grabs timeline
 
+        # if there is a response it will graph the timeline, if not, it will return false
         if countryTimeline:
             dates = [countryTimeline[i]['date'] async for i in aiter(range(len(countryTimeline)))] # grabs dates and puts it in an array
             stat = [countryTimeline[i][f'{statistic}'] async for i in aiter(range(len(countryTimeline)))] # grabs the statistics and puts it in an array
@@ -251,7 +314,7 @@ class CovidAPI(APIHandler.APIHandler):
             return False
 
 '''
-#TESTING ASYNC FUNCTIONS:
+#TESTING FUNCTIONS:
 
 loop = asyncio.get_event_loop()
 test = loop.run_until_complete(CovidAPI().getDateGraph('Japan', 'January 1 2021'))
