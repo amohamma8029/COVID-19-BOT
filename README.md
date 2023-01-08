@@ -1,6 +1,11 @@
 # COVID-19 BOT
 
-**COVID-19 BOT** is a bot application that tracks global statistics for COVID-19 and acts as a news search engine made entirely for Discord. The bot is coded entirely using python and mainly the [discord.py (rewrite)](https://discordpy.readthedocs.io/en/latest/) module. 
+**COVID-19 BOT** is a bot application that tracks global statistics for COVID-19 and acts as a news search engine made entirely for Discord. The bot is coded entirely using python and mainly the [discord.py (rewrite)](https://discordpy.readthedocs.io/en/latest/) module.
+
+**FEATURES:**
+- Track global COVID-19 statistics
+- Search COVID-19 related (or general) news
+- Display graphs with available statistics
 
 # SETTING UP THE PROJECT
 
