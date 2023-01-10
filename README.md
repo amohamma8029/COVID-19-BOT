@@ -5,7 +5,7 @@
 **FEATURES:**
 - Track global COVID-19 statistics
 - Search COVID-19 related (or general) news
-- Display graphs with available statistics
+- Visualize data using graphs and charts
 
 # SETTING UP THE PROJECT
 
