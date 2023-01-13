@@ -62,7 +62,7 @@ To get a Discord bot token of your own, you need to head to https://discord.com/
 
 # TESTING THE BOT
 
-Once you're all setup, you can run the code, and the bot should be online on discord. If you're running my bot specifically you'll want to head to the following discord link: https://discord.gg/QjSexc9P45 and run the source code I've sent you and start using the bot. You can start off by doing `?help` in the chat, which will display the entire list of commands that the bot can perform and then just test away. If you're doing this with you're own bot, on your own server, just follow the same steps as well.
+Once you're all setup, you can run the code, and the bot should be online on discord. You can start off by doing `?help` in the chat, which will display the entire list of commands that the bot can perform and then just test away. If you're doing this with you're own bot, on your own server, just follow the same steps as well.
 
 # DISCLAIMER
 
